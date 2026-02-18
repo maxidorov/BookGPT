@@ -19,25 +19,46 @@ struct SearchBookView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
-            TextField("Enter book title", text: $viewModel.query)
-                .textFieldStyle(.roundedBorder)
-
-            Button("Search") {
-                Task {
-                    await viewModel.search()
+        ScrollView {
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Midnight Library")
+                        .font(BrandBook.Typography.title())
+                        .foregroundStyle(BrandBook.Colors.paper)
+                    Text("Find a book and speak with the characters inside it.")
+                        .font(BrandBook.Typography.caption())
+                        .foregroundStyle(BrandBook.Colors.secondaryText)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                TextField("Enter book title", text: $viewModel.query)
+                    .font(BrandBook.Typography.body())
+                    .padding(12)
+                    .background(BrandBook.Colors.surface)
+                    .foregroundStyle(BrandBook.Colors.primaryText)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                Button("Search") {
+                    Task {
+                        await viewModel.search()
+                    }
+                }
+                .font(BrandBook.Typography.body())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(BrandBook.Colors.gold)
+                .foregroundStyle(BrandBook.Colors.background)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                recentSection
+                content
             }
-            .buttonStyle(.borderedProminent)
-
-            recentSection
-
-            content
-
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
         }
-        .padding()
         .navigationTitle("BookGPT")
+        .foregroundStyle(BrandBook.Colors.primaryText)
+        .background(BrandBook.Colors.background)
         .task {
             viewModel.loadRecentBooks()
         }
@@ -48,7 +69,8 @@ struct SearchBookView: View {
         if !viewModel.recentBooks.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Recent")
-                    .font(.headline)
+                    .font(BrandBook.Typography.section(size: 18))
+                    .foregroundStyle(BrandBook.Colors.paper)
 
                 ForEach(viewModel.recentBooks) { book in
                     Button {
@@ -58,16 +80,18 @@ struct SearchBookView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(book.title)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.primary)
+                                    .font(BrandBook.Typography.body())
+                                    .foregroundStyle(BrandBook.Colors.primaryText)
                                 Text(book.author)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(BrandBook.Typography.caption())
+                                    .foregroundStyle(BrandBook.Colors.secondaryText)
                             }
                             Spacer()
                         }
+                        .padding(10)
+                        .background(BrandBook.Colors.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
-                    .buttonStyle(.bordered)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -79,33 +103,47 @@ struct SearchBookView: View {
         switch viewModel.state {
         case .idle:
             Text("Search a book to start")
-                .foregroundStyle(.secondary)
+                .font(BrandBook.Typography.caption())
+                .foregroundStyle(BrandBook.Colors.secondaryText)
         case .loading:
             ProgressView("Searching...")
+                .tint(BrandBook.Colors.gold)
         case .loaded(let books):
             if books.isEmpty {
                 Text("No books found")
-                    .foregroundStyle(.secondary)
+                    .font(BrandBook.Typography.caption())
+                    .foregroundStyle(BrandBook.Colors.secondaryText)
             } else {
-                List(books) { book in
-                    Button {
-                        viewModel.selectBook(book)
-                        onBookSelected(book)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(book.title)
-                                .font(.headline)
-                            Text(book.author)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Search Results")
+                        .font(BrandBook.Typography.section(size: 18))
+                        .foregroundStyle(BrandBook.Colors.paper)
+
+                    ForEach(books) { book in
+                        Button {
+                            viewModel.selectBook(book)
+                            onBookSelected(book)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(book.title)
+                                    .font(BrandBook.Typography.body())
+                                    .foregroundStyle(BrandBook.Colors.primaryText)
+                                Text(book.author)
+                                    .font(BrandBook.Typography.caption())
+                                    .foregroundStyle(BrandBook.Colors.secondaryText)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .background(BrandBook.Colors.surfaceMuted)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
                 }
-                .listStyle(.plain)
             }
         case .error(let message):
             Text(message)
-                .foregroundStyle(.red)
+                .font(BrandBook.Typography.caption())
+                .foregroundStyle(BrandBook.Colors.error)
         }
     }
 }

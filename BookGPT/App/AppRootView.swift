@@ -35,5 +35,8 @@ struct AppRootView: View {
                 }
             }
         }
+        .background(BrandBook.Colors.background)
+        .toolbarBackground(BrandBook.Colors.background, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }

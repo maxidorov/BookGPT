@@ -1,5 +1,6 @@
 import SwiftUI
 import ChatKit
+import UIKit
 
 struct CharacterChatView: View {
     private let chatService: CharacterChatService
@@ -38,7 +39,7 @@ private struct CharacterChatContainerView: UIViewControllerRepresentable {
             dataProvider: dataProvider
         )
 
-        let controller = MessageListViewController(viewModel: viewModel)
+        let controller = MessageListViewController(viewModel: viewModel, theme: makeBrandTheme())
         controller.loadViewIfNeeded()
         Self.applyMinimumBottomInsetIfNeeded(to: controller)
         controller.onOutgoingMessageSent = { [weak controller, weak viewModel, coordinator = context.coordinator] outgoingMessage in
@@ -49,6 +50,57 @@ private struct CharacterChatContainerView: UIViewControllerRepresentable {
             }
         }
         return controller
+    }
+
+    private func makeBrandTheme() -> ChatTheme {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+
+        return ChatTheme(
+            backgroundColor: BrandBook.Colors.uiBackground,
+            outgoingBubble: .init(
+                backgroundColor: BrandBook.Colors.uiGold,
+                textColor: BrandBook.Colors.uiBackground,
+                cornerRadius: 16,
+                contentInsets: .init(top: 10, left: 12, bottom: 10, right: 12),
+                maxWidthRatio: 0.75
+            ),
+            incomingBubble: .init(
+                backgroundColor: BrandBook.Colors.uiSurfaceMuted,
+                textColor: BrandBook.Colors.uiPaper,
+                cornerRadius: 16,
+                contentInsets: .init(top: 10, left: 12, bottom: 10, right: 12),
+                maxWidthRatio: 0.8
+            ),
+            avatar: .init(
+                isVisible: false,
+                size: 32,
+                cornerRadius: 16,
+                placeholderBackgroundColor: BrandBook.Colors.uiSurface
+            ),
+            dateSeparator: .init(
+                textColor: BrandBook.Colors.uiPaper,
+                backgroundColor: BrandBook.Colors.uiSurface,
+                font: BrandBook.Typography.uiCaption(),
+                contentInsets: .init(top: 4, left: 10, bottom: 4, right: 10),
+                cornerRadius: 10,
+                formatter: formatter
+            ),
+            typingIndicator: .init(
+                textColor: BrandBook.Colors.uiPaper,
+                backgroundColor: BrandBook.Colors.uiSurface,
+                font: BrandBook.Typography.uiBody(),
+                contentInsets: .init(top: 8, left: 12, bottom: 8, right: 12),
+                cornerRadius: 16
+            ),
+            header: .init(
+                height: 44,
+                backgroundColor: BrandBook.Colors.uiBackground,
+                titleFont: BrandBook.Typography.uiTitle(),
+                titleColor: BrandBook.Colors.uiPaper
+            )
+        )
     }
 
     func updateUIViewController(_ uiViewController: MessageListViewController, context: Context) {

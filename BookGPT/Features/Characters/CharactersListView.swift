@@ -23,37 +23,49 @@ struct CharactersListView: View {
     }
 
     var body: some View {
-        Group {
-            switch viewModel.state {
-            case .loading:
-                ProgressView("Loading characters...")
-            case .loaded(let characters):
-                if characters.isEmpty {
-                    Text("No characters found")
-                        .foregroundStyle(.secondary)
-                } else {
-                    List(characters) { character in
-                        Button {
-                            onCharacterSelected(character)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(character.name)
-                                    .font(.headline)
-                                Text(character.description)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                switch viewModel.state {
+                case .loading:
+                    ProgressView("Loading characters...")
+                        .tint(BrandBook.Colors.gold)
+                case .loaded(let characters):
+                    if characters.isEmpty {
+                        Text("No characters found")
+                            .font(BrandBook.Typography.caption())
+                            .foregroundStyle(BrandBook.Colors.secondaryText)
+                    } else {
+                        ForEach(characters) { character in
+                            Button {
+                                onCharacterSelected(character)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(character.name)
+                                        .font(BrandBook.Typography.section(size: 20))
+                                        .foregroundStyle(BrandBook.Colors.primaryText)
+                                    Text(character.description)
+                                        .font(BrandBook.Typography.caption())
+                                        .foregroundStyle(BrandBook.Colors.secondaryText)
+                                        .lineLimit(2)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(12)
+                                .background(BrandBook.Colors.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             }
                         }
-                    }
-                    .listStyle(.plain)
+                    }                    
+                case .error(let message):
+                    Text(message)
+                        .font(BrandBook.Typography.caption())
+                        .foregroundStyle(BrandBook.Colors.error)
                 }
-            case .error(let message):
-                Text(message)
-                    .foregroundStyle(.red)
             }
         }
+        .padding()
         .navigationTitle(book.title)
+        .foregroundStyle(BrandBook.Colors.primaryText)
+        .background(BrandBook.Colors.background)
         .task {
             await viewModel.loadCharacters()
         }
