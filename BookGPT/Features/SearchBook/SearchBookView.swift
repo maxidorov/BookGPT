@@ -4,8 +4,17 @@ struct SearchBookView: View {
     @StateObject private var viewModel: SearchBookViewModel
     let onBookSelected: (Book) -> Void
 
-    init(booksRepository: BooksRepository, onBookSelected: @escaping (Book) -> Void) {
-        _viewModel = StateObject(wrappedValue: SearchBookViewModel(booksRepository: booksRepository))
+    init(
+        booksRepository: BooksRepository,
+        historyStore: BookHistoryStore,
+        onBookSelected: @escaping (Book) -> Void
+    ) {
+        _viewModel = StateObject(
+            wrappedValue: SearchBookViewModel(
+                booksRepository: booksRepository,
+                historyStore: historyStore
+            )
+        )
         self.onBookSelected = onBookSelected
     }
 
@@ -21,12 +30,48 @@ struct SearchBookView: View {
             }
             .buttonStyle(.borderedProminent)
 
+            recentSection
+
             content
 
             Spacer()
         }
         .padding()
         .navigationTitle("BookGPT")
+        .task {
+            viewModel.loadRecentBooks()
+        }
+    }
+
+    @ViewBuilder
+    private var recentSection: some View {
+        if !viewModel.recentBooks.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Recent")
+                    .font(.headline)
+
+                ForEach(viewModel.recentBooks) { book in
+                    Button {
+                        viewModel.selectBook(book)
+                        onBookSelected(book)
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(book.title)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                                Text(book.author)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     @ViewBuilder
@@ -44,6 +89,7 @@ struct SearchBookView: View {
             } else {
                 List(books) { book in
                     Button {
+                        viewModel.selectBook(book)
                         onBookSelected(book)
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {

@@ -10,7 +10,10 @@ struct AppRootView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            SearchBookView(booksRepository: dependencies.booksRepository) { selectedBook in
+            SearchBookView(
+                booksRepository: dependencies.booksRepository,
+                historyStore: dependencies.historyStore
+            ) { selectedBook in
                 path.append(.characters(book: selectedBook))
             }
             .navigationDestination(for: AppRoute.self) { route in
@@ -18,7 +21,8 @@ struct AppRootView: View {
                 case .characters(let book):
                     CharactersListView(
                         book: book,
-                        charactersRepository: dependencies.charactersRepository
+                        charactersRepository: dependencies.charactersRepository,
+                        historyStore: dependencies.historyStore
                     ) { selectedCharacter in
                         path.append(.chat(book: book, character: selectedCharacter))
                     }

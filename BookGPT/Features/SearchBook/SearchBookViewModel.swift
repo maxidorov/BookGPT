@@ -12,11 +12,15 @@ final class SearchBookViewModel: ObservableObject {
 
     @Published var query: String = ""
     @Published private(set) var state: State = .idle
+    @Published private(set) var recentBooks: [Book] = []
 
     private let booksRepository: BooksRepository
+    private let historyStore: BookHistoryStore
 
-    init(booksRepository: BooksRepository) {
+    init(booksRepository: BooksRepository, historyStore: BookHistoryStore) {
         self.booksRepository = booksRepository
+        self.historyStore = historyStore
+        self.recentBooks = historyStore.loadRecentBooks()
     }
 
     func search() async {
@@ -34,5 +38,14 @@ final class SearchBookViewModel: ObservableObject {
         } catch {
             state = .error("Failed to search books. Try again.")
         }
+    }
+
+    func loadRecentBooks() {
+        recentBooks = historyStore.loadRecentBooks()
+    }
+
+    func selectBook(_ book: Book) {
+        historyStore.addRecentBook(book)
+        recentBooks = historyStore.loadRecentBooks()
     }
 }

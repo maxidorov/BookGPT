@@ -16,3 +16,10 @@ protocol CharacterChatService {
         book: Book
     ) async throws -> ChatMessage
 }
+
+protocol BookHistoryStore {
+    func loadRecentBooks() -> [Book]
+    func addRecentBook(_ book: Book)
+    func loadCachedCharacters(for book: Book) -> [BookCharacter]?
+    func saveCharacters(_ characters: [BookCharacter], for book: Book)
+}

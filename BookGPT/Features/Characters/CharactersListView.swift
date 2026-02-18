@@ -8,11 +8,16 @@ struct CharactersListView: View {
     init(
         book: Book,
         charactersRepository: CharactersRepository,
+        historyStore: BookHistoryStore,
         onCharacterSelected: @escaping (BookCharacter) -> Void
     ) {
         self.book = book
         _viewModel = StateObject(
-            wrappedValue: CharactersListViewModel(book: book, charactersRepository: charactersRepository)
+            wrappedValue: CharactersListViewModel(
+                book: book,
+                charactersRepository: charactersRepository,
+                historyStore: historyStore
+            )
         )
         self.onCharacterSelected = onCharacterSelected
     }
