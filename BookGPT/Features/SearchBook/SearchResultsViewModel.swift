@@ -38,6 +38,10 @@ final class SearchResultsViewModel: ObservableObject {
         }
     }
 
+    func retry() async {
+        await load()
+    }
+
     func selectBook(_ book: Book) {
         historyStore.addRecentBook(book)
     }

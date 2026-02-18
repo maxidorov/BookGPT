@@ -22,8 +22,8 @@ final class CharactersListViewModel: ObservableObject {
         self.historyStore = historyStore
     }
 
-    func loadCharacters() async {
-        guard !hasLoadedOnce else { return }
+    func loadCharacters(forceReload: Bool = false) async {
+        guard forceReload || !hasLoadedOnce else { return }
         hasLoadedOnce = true
 
         if let cachedCharacters = historyStore.loadCachedCharacters(for: book) {
@@ -40,5 +40,9 @@ final class CharactersListViewModel: ObservableObject {
         } catch {
             state = .error("Failed to load characters")
         }
+    }
+
+    func retry() async {
+        await loadCharacters(forceReload: true)
     }
 }

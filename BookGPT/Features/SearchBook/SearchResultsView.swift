@@ -30,10 +30,7 @@ struct SearchResultsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     switch viewModel.state {
                     case .loading:
-                        ProgressView("Searching...")
-                            .tint(BrandBook.Colors.gold)
-                            .font(BrandBook.Typography.body())
-                            .padding(.top, 24)
+                        loadingContent
                     case .loaded(let books):
                         if books.isEmpty {
                             Text("No books found")
@@ -61,9 +58,25 @@ struct SearchResultsView: View {
                             }
                         }
                     case .error(let message):
-                        Text(message)
-                            .font(BrandBook.Typography.caption())
-                            .foregroundStyle(BrandBook.Colors.error)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(message)
+                                .font(BrandBook.Typography.caption())
+                                .foregroundStyle(BrandBook.Colors.error)
+
+                            Button {
+                                Task {
+                                    await viewModel.retry()
+                                }
+                            } label: {
+                                Text("Retry")
+                                    .font(BrandBook.Typography.body())
+                                    .foregroundStyle(BrandBook.Colors.background)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(BrandBook.Colors.gold)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -75,6 +88,35 @@ struct SearchResultsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadIfNeeded()
+        }
+    }
+
+    private var loadingContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(BrandBook.Colors.gold)
+                Text("Searching...")
+                    .font(BrandBook.Typography.body())
+                    .foregroundStyle(BrandBook.Colors.primaryText)
+            }
+            .padding(.top, 8)
+
+            ForEach(0..<5, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: 8) {
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(BrandBook.Colors.surface)
+                        .frame(width: 220, height: 18)
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(BrandBook.Colors.surfaceMuted)
+                        .frame(width: 170, height: 14)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(BrandBook.Colors.surfaceMuted.opacity(0.7))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
         }
     }
 }
