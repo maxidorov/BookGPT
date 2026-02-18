@@ -17,6 +17,7 @@ struct CharacterChatView: View {
         CharacterChatContainerView(chatService: chatService, book: book, character: character)
             .navigationTitle(character.name)
             .navigationBarTitleDisplayMode(.inline)
+            .background(BrandBook.Colors.background.ignoresSafeArea())
     }
 }
 

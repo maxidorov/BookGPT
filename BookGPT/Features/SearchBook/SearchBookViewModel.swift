@@ -3,41 +3,25 @@ import Combine
 
 @MainActor
 final class SearchBookViewModel: ObservableObject {
-    enum State: Equatable {
-        case idle
-        case loading
-        case loaded([Book])
-        case error(String)
-    }
-
     @Published var query: String = ""
-    @Published private(set) var state: State = .idle
     @Published private(set) var recentBooks: [Book] = []
+    @Published private(set) var validationError: String?
 
-    private let booksRepository: BooksRepository
     private let historyStore: BookHistoryStore
 
-    init(booksRepository: BooksRepository, historyStore: BookHistoryStore) {
-        self.booksRepository = booksRepository
+    init(historyStore: BookHistoryStore) {
         self.historyStore = historyStore
         self.recentBooks = historyStore.loadRecentBooks()
     }
 
-    func search() async {
+    func validatedQueryForSearch() -> String? {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedQuery.isEmpty else {
-            state = .error("Enter a book title")
-            return
+            validationError = "Enter a book title"
+            return nil
         }
-
-        state = .loading
-
-        do {
-            let books = try await booksRepository.searchBooks(query: normalizedQuery)
-            state = .loaded(books)
-        } catch {
-            state = .error("Failed to search books. Try again.")
-        }
+        validationError = nil
+        return normalizedQuery
     }
 
     func loadRecentBooks() {

@@ -1,25 +1,25 @@
 import SwiftUI
 
-struct CharactersListView: View {
-    @StateObject private var viewModel: CharactersListViewModel
-    private let book: Book
-    let onCharacterSelected: (BookCharacter) -> Void
+struct SearchResultsView: View {
+    @StateObject private var viewModel: SearchResultsViewModel
+    private let query: String
+    let onBookSelected: (Book) -> Void
 
     init(
-        book: Book,
-        charactersRepository: CharactersRepository,
+        query: String,
+        booksRepository: BooksRepository,
         historyStore: BookHistoryStore,
-        onCharacterSelected: @escaping (BookCharacter) -> Void
+        onBookSelected: @escaping (Book) -> Void
     ) {
-        self.book = book
+        self.query = query
         _viewModel = StateObject(
-            wrappedValue: CharactersListViewModel(
-                book: book,
-                charactersRepository: charactersRepository,
+            wrappedValue: SearchResultsViewModel(
+                query: query,
+                booksRepository: booksRepository,
                 historyStore: historyStore
             )
         )
-        self.onCharacterSelected = onCharacterSelected
+        self.onBookSelected = onBookSelected
     }
 
     var body: some View {
@@ -30,30 +30,32 @@ struct CharactersListView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     switch viewModel.state {
                     case .loading:
-                        ProgressView("Loading characters...")
+                        ProgressView("Searching...")
                             .tint(BrandBook.Colors.gold)
-                    case .loaded(let characters):
-                        if characters.isEmpty {
-                            Text("No characters found")
+                            .font(BrandBook.Typography.body())
+                            .padding(.top, 24)
+                    case .loaded(let books):
+                        if books.isEmpty {
+                            Text("No books found")
                                 .font(BrandBook.Typography.caption())
                                 .foregroundStyle(BrandBook.Colors.secondaryText)
                         } else {
-                            ForEach(characters) { character in
+                            ForEach(books) { book in
                                 Button {
-                                    onCharacterSelected(character)
+                                    viewModel.selectBook(book)
+                                    onBookSelected(book)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(character.name)
-                                            .font(BrandBook.Typography.section(size: 20))
+                                        Text(book.title)
+                                            .font(BrandBook.Typography.body())
                                             .foregroundStyle(BrandBook.Colors.primaryText)
-                                        Text(character.description)
+                                        Text(book.author)
                                             .font(BrandBook.Typography.caption())
                                             .foregroundStyle(BrandBook.Colors.secondaryText)
-                                            .fixedSize(horizontal: false, vertical: true)
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(12)
-                                    .background(BrandBook.Colors.surface)
+                                    .background(BrandBook.Colors.surfaceMuted)
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 }
                             }
@@ -64,15 +66,15 @@ struct CharactersListView: View {
                             .foregroundStyle(BrandBook.Colors.error)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
             }
             .scrollIndicators(.hidden)
         }
-        .navigationTitle(book.title)
-        .navigationBarTitleDisplayMode(.large)
-        .foregroundStyle(BrandBook.Colors.primaryText)
+        .navigationTitle(query)
+        .navigationBarTitleDisplayMode(.inline)
         .task {
-            await viewModel.loadCharacters()
+            await viewModel.loadIfNeeded()
         }
     }
 }

@@ -10,6 +10,7 @@ final class CharactersListViewModel: ObservableObject {
     }
 
     @Published private(set) var state: State = .loading
+    private var hasLoadedOnce = false
 
     private let book: Book
     private let charactersRepository: CharactersRepository
@@ -22,6 +23,9 @@ final class CharactersListViewModel: ObservableObject {
     }
 
     func loadCharacters() async {
+        guard !hasLoadedOnce else { return }
+        hasLoadedOnce = true
+
         if let cachedCharacters = historyStore.loadCachedCharacters(for: book) {
             state = .loaded(cachedCharacters)
             return

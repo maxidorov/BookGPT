@@ -11,13 +11,22 @@ struct AppRootView: View {
     var body: some View {
         NavigationStack(path: $path) {
             SearchBookView(
-                booksRepository: dependencies.booksRepository,
                 historyStore: dependencies.historyStore
-            ) { selectedBook in
+            ) { query in
+                path.append(.searchResults(query: query))
+            } onBookSelected: { selectedBook in
                 path.append(.characters(book: selectedBook))
             }
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
+                case .searchResults(let query):
+                    SearchResultsView(
+                        query: query,
+                        booksRepository: dependencies.booksRepository,
+                        historyStore: dependencies.historyStore
+                    ) { selectedBook in
+                        path.append(.characters(book: selectedBook))
+                    }
                 case .characters(let book):
                     CharactersListView(
                         book: book,
@@ -35,8 +44,6 @@ struct AppRootView: View {
                 }
             }
         }
-        .background(BrandBook.Colors.background)
-        .toolbarBackground(BrandBook.Colors.background, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .background(BrandBook.Colors.background.ignoresSafeArea())
     }
 }

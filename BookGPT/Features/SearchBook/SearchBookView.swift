@@ -2,65 +2,89 @@ import SwiftUI
 
 struct SearchBookView: View {
     @StateObject private var viewModel: SearchBookViewModel
+    @FocusState private var isSearchFocused: Bool
+    let onSearchRequested: (String) -> Void
     let onBookSelected: (Book) -> Void
 
     init(
-        booksRepository: BooksRepository,
         historyStore: BookHistoryStore,
+        onSearchRequested: @escaping (String) -> Void,
         onBookSelected: @escaping (Book) -> Void
     ) {
         _viewModel = StateObject(
-            wrappedValue: SearchBookViewModel(
-                booksRepository: booksRepository,
-                historyStore: historyStore
-            )
+            wrappedValue: SearchBookViewModel(historyStore: historyStore)
         )
+        self.onSearchRequested = onSearchRequested
         self.onBookSelected = onBookSelected
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Midnight Library")
-                        .font(BrandBook.Typography.title())
-                        .foregroundStyle(BrandBook.Colors.paper)
-                    Text("Find a book and speak with the characters inside it.")
-                        .font(BrandBook.Typography.caption())
-                        .foregroundStyle(BrandBook.Colors.secondaryText)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+        ZStack {
+            BrandBook.Colors.background.ignoresSafeArea()
 
-                TextField("Enter book title", text: $viewModel.query)
+            ScrollView {
+                VStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Midnight Library")
+                            .font(BrandBook.Typography.title())
+                            .foregroundStyle(BrandBook.Colors.paper)
+                        Text("Find a book and speak with the characters inside it.")
+                            .font(BrandBook.Typography.caption())
+                            .foregroundStyle(BrandBook.Colors.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    TextField("Enter book title", text: $viewModel.query)
+                        .focused($isSearchFocused)
+                        .font(BrandBook.Typography.body())
+                        .padding(12)
+                        .background(BrandBook.Colors.surface)
+                        .foregroundStyle(BrandBook.Colors.primaryText)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .submitLabel(.search)
+                        .onSubmit {
+                            searchTapped()
+                        }
+
+                    Button("Search") {
+                        searchTapped()
+                    }
                     .font(BrandBook.Typography.body())
-                    .padding(12)
-                    .background(BrandBook.Colors.surface)
-                    .foregroundStyle(BrandBook.Colors.primaryText)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(BrandBook.Colors.gold)
+                    .foregroundStyle(BrandBook.Colors.background)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                Button("Search") {
-                    Task {
-                        await viewModel.search()
+                    if let validationError = viewModel.validationError {
+                        Text(validationError)
+                            .font(BrandBook.Typography.caption())
+                            .foregroundStyle(BrandBook.Colors.error)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                }
-                .font(BrandBook.Typography.body())
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(BrandBook.Colors.gold)
-                .foregroundStyle(BrandBook.Colors.background)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                recentSection
-                content
+                    recentSection
+                    Spacer(minLength: 120)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
         }
-        .navigationTitle("BookGPT")
+        .navigationTitle("Library")
+        .navigationBarTitleDisplayMode(.inline)
         .foregroundStyle(BrandBook.Colors.primaryText)
-        .background(BrandBook.Colors.background)
         .task {
             viewModel.loadRecentBooks()
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isSearchFocused = false
+                }
+            }
         }
     }
 
@@ -100,50 +124,12 @@ struct SearchBookView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch viewModel.state {
-        case .idle:
-            Text("Search a book to start")
-                .font(BrandBook.Typography.caption())
-                .foregroundStyle(BrandBook.Colors.secondaryText)
-        case .loading:
-            ProgressView("Searching...")
-                .tint(BrandBook.Colors.gold)
-        case .loaded(let books):
-            if books.isEmpty {
-                Text("No books found")
-                    .font(BrandBook.Typography.caption())
-                    .foregroundStyle(BrandBook.Colors.secondaryText)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Search Results")
-                        .font(BrandBook.Typography.section(size: 18))
-                        .foregroundStyle(BrandBook.Colors.paper)
+        EmptyView()
+    }
 
-                    ForEach(books) { book in
-                        Button {
-                            viewModel.selectBook(book)
-                            onBookSelected(book)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(book.title)
-                                    .font(BrandBook.Typography.body())
-                                    .foregroundStyle(BrandBook.Colors.primaryText)
-                                Text(book.author)
-                                    .font(BrandBook.Typography.caption())
-                                    .foregroundStyle(BrandBook.Colors.secondaryText)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .background(BrandBook.Colors.surfaceMuted)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-                    }
-                }
-            }
-        case .error(let message):
-            Text(message)
-                .font(BrandBook.Typography.caption())
-                .foregroundStyle(BrandBook.Colors.error)
-        }
+    private func searchTapped() {
+        isSearchFocused = false
+        guard let query = viewModel.validatedQueryForSearch() else { return }
+        onSearchRequested(query)
     }
 }
