@@ -40,7 +40,11 @@ private struct CharacterChatContainerView: UIViewControllerRepresentable {
             dataProvider: dataProvider
         )
 
-        let controller = MessageListViewController(viewModel: viewModel, theme: makeBrandTheme())
+        let controller = MessageListViewController(
+            viewModel: viewModel,
+            theme: makeBrandTheme(),
+            isPhotoAttachmentEnabled: false
+        )
         controller.loadViewIfNeeded()
         Self.applyMinimumBottomInsetIfNeeded(to: controller)
         controller.onOutgoingMessageSent = { [weak controller, weak viewModel, coordinator = context.coordinator] outgoingMessage in
@@ -100,6 +104,13 @@ private struct CharacterChatContainerView: UIViewControllerRepresentable {
                 backgroundColor: BrandBook.Colors.uiBackground,
                 titleFont: BrandBook.Typography.uiTitle(),
                 titleColor: BrandBook.Colors.uiPaper
+            ),
+            inputBar: .init(
+                containerBackgroundColor: BrandBook.Colors.uiSurfaceMuted,
+                sendButtonBackgroundColor: BrandBook.Colors.uiGold,
+                sendButtonForegroundColor: BrandBook.Colors.uiBackground,
+                sendIconSystemName: "arrow.up",
+                attachmentIconSystemName: "camera.fill"
             ),
             typography: .init(
                 messageTextFont: BrandBook.Typography.uiBody(size: 18),

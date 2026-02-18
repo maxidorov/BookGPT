@@ -46,14 +46,18 @@ struct SearchBookView: View {
                             searchTapped()
                         }
 
-                    Button("Search") {
+                    Button {
                         searchTapped()
+                    } label: {
+                        Text("Search")
+                            .font(BrandBook.Typography.body())
+                            .foregroundStyle(BrandBook.Colors.background)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .contentShape(Rectangle())
                     }
-                    .font(BrandBook.Typography.body())
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .buttonStyle(.plain)
                     .background(BrandBook.Colors.gold)
-                    .foregroundStyle(BrandBook.Colors.background)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                     if let validationError = viewModel.validationError {

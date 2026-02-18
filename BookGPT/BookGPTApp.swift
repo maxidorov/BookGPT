@@ -33,11 +33,15 @@ struct BookGPTApp: App {
         navigationBar.standardAppearance = standardAppearance
         navigationBar.compactAppearance = standardAppearance
         navigationBar.scrollEdgeAppearance = largeTitleAppearance
+
+        UITextField.appearance().tintColor = BrandBook.Colors.uiGold
+        UITextView.appearance().tintColor = BrandBook.Colors.uiGold
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .tint(BrandBook.Colors.gold)
         }
     }
 }
