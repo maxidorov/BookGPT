@@ -100,6 +100,14 @@ private struct CharacterChatContainerView: UIViewControllerRepresentable {
                 backgroundColor: BrandBook.Colors.uiBackground,
                 titleFont: BrandBook.Typography.uiTitle(),
                 titleColor: BrandBook.Colors.uiPaper
+            ),
+            typography: .init(
+                messageTextFont: BrandBook.Typography.uiBody(size: 18),
+                messageHeaderFont: BrandBook.Typography.uiCaption(size: 15),
+                suggestionFont: BrandBook.Typography.uiBody(size: 16),
+                typingTextFont: BrandBook.Typography.uiCaption(size: 16),
+                unsupportedContentFont: BrandBook.Typography.uiBody(size: 16),
+                composerFont: BrandBook.Typography.uiBody(size: 18)
             )
         )
     }
