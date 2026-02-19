@@ -4,11 +4,34 @@ struct AppRootView: View {
     private let dependencies: AppDependencies
     @State private var path: [AppRoute] = []
 
+    @AppStorage("bookgpt_has_completed_onboarding") private var hasCompletedOnboarding = false
+    @AppStorage("bookgpt_is_paid_user") private var isPaidUser = false
+
     init(dependencies: AppDependencies = .live) {
         self.dependencies = dependencies
     }
 
     var body: some View {
+        Group {
+            if isPaidUser {
+                mainExperience
+            } else {
+                OnboardingFlowView(
+                    startAtPaywall: hasCompletedOnboarding,
+                    onReachedPaywall: {
+                        hasCompletedOnboarding = true
+                    },
+                    onPurchaseCompleted: {
+                        hasCompletedOnboarding = true
+                        isPaidUser = true
+                    }
+                )
+            }
+        }
+        .background(BrandBook.Colors.background.ignoresSafeArea())
+    }
+
+    private var mainExperience: some View {
         NavigationStack(path: $path) {
             SearchBookView(
                 historyStore: dependencies.historyStore
@@ -44,6 +67,5 @@ struct AppRootView: View {
                 }
             }
         }
-        .background(BrandBook.Colors.background.ignoresSafeArea())
     }
 }
