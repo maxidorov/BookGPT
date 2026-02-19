@@ -29,7 +29,8 @@ final class OnboardingFlowViewModel: ObservableObject {
     @Published private(set) var currentStep: Step
 
     @Published var selectedGenres: Set<String> = []
-    @Published var favoriteBooks: [String] = ["", "", ""]
+    @Published var favoriteBooks: [String] = [""]
+    @Published var skippedFavoriteBooks = false
     @Published var selectedReadingGoal: String?
 
     @Published var selectedArchetypes: Set<String> = []
@@ -40,6 +41,8 @@ final class OnboardingFlowViewModel: ObservableObject {
 
     @Published private(set) var isVisualizationLoading = false
     @Published private(set) var hasVisualizationReady = false
+    @Published private(set) var isSocialProofLoading = false
+    @Published private(set) var hasSocialProofReady = false
 
     @Published var selectedPlan: PlanOption = .annual
     @Published private(set) var isProcessingPurchase = false
@@ -90,7 +93,7 @@ final class OnboardingFlowViewModel: ObservableObject {
         case .genres:
             return !selectedGenres.isEmpty
         case .favoriteBooks:
-            return favoriteBooks.contains { !$0.trimmed.isEmpty }
+            return skippedFavoriteBooks || favoriteBooks.contains { !$0.trimmed.isEmpty }
         case .readingGoal:
             return selectedReadingGoal != nil
         case .archetypes:
@@ -103,6 +106,8 @@ final class OnboardingFlowViewModel: ObservableObject {
             return !bookTitle.trimmed.isEmpty
         case .visualization:
             return hasVisualizationReady
+        case .socialProof:
+            return hasSocialProofReady
         case .paywall:
             return !isProcessingPurchase
         default:
@@ -130,6 +135,9 @@ final class OnboardingFlowViewModel: ObservableObject {
 
         if currentStep == .bookTitle {
             startVisualizationStub()
+        }
+        if currentStep == .personalization {
+            startSocialProofPreparationStub()
         }
 
         guard indexOfCurrentStep + 1 < steps.count else { return }
@@ -167,6 +175,35 @@ final class OnboardingFlowViewModel: ObservableObject {
             isVisualizationLoading = false
             hasVisualizationReady = true
         }
+    }
+
+    func startSocialProofPreparationStub() {
+        guard !isSocialProofLoading, !hasSocialProofReady else { return }
+        isSocialProofLoading = true
+
+        Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            isSocialProofLoading = false
+            hasSocialProofReady = true
+        }
+    }
+
+    func addFavoriteBookField() {
+        guard favoriteBooks.count < 4 else { return }
+        favoriteBooks.append("")
+    }
+
+    func updateFavoriteBook(at index: Int, value: String) {
+        guard favoriteBooks.indices.contains(index) else { return }
+        favoriteBooks[index] = value
+        if !value.trimmed.isEmpty {
+            skippedFavoriteBooks = false
+        }
+    }
+
+    func markFavoriteBooksSkipped() {
+        skippedFavoriteBooks = true
+        favoriteBooks = [""]
     }
 
     private var indexOfCurrentStep: Int {

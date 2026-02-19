@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OnboardingFlowView: View {
     @StateObject private var viewModel: OnboardingFlowViewModel
+    @State private var transitionEdge: Edge = .trailing
 
     private let onReachedPaywall: () -> Void
     private let onPurchaseCompleted: () -> Void
@@ -20,12 +21,17 @@ struct OnboardingFlowView: View {
         ZStack {
             backgroundLayer
 
-            VStack(spacing: 14) {
+            VStack(spacing: 0) {
                 header
                 ScrollView(showsIndicators: false) {
-                    stepContent
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.bottom, 24)
+                    ZStack {
+                        stepContent
+                            .id(viewModel.currentStep)
+                            .transition(stepTransition)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 14)
+                    .padding(.bottom, 24)
                 }
 
                 if !viewModel.isOnPaywall {
@@ -51,7 +57,10 @@ struct OnboardingFlowView: View {
                 HStack {
                     if viewModel.canGoBack {
                         Button {
-                            viewModel.goBack()
+                            transitionEdge = .leading
+                            withAnimation(.easeInOut(duration: 0.35)) {
+                                viewModel.goBack()
+                            }
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.headline)
@@ -71,8 +80,16 @@ struct OnboardingFlowView: View {
                     .tint(BrandBook.Colors.gold)
                     .background(BrandBook.Colors.surfaceMuted.opacity(0.5))
                     .clipShape(Capsule())
+                    .animation(.easeInOut(duration: 0.35), value: viewModel.progressValue)
             }
         }
+    }
+
+    private var stepTransition: AnyTransition {
+        let insertion = AnyTransition.move(edge: transitionEdge).combined(with: .opacity)
+        let removalEdge: Edge = transitionEdge == .trailing ? .leading : .trailing
+        let removal = AnyTransition.move(edge: removalEdge).combined(with: .opacity)
+        return .asymmetric(insertion: insertion, removal: removal)
     }
 
     private var backgroundLayer: some View {
@@ -136,17 +153,21 @@ struct OnboardingFlowView: View {
 
     private var primaryActionButton: some View {
         Button {
-            viewModel.advance()
+            transitionEdge = .trailing
+            withAnimation(.easeInOut(duration: 0.35)) {
+                viewModel.advance()
+            }
         } label: {
             Text(viewModel.primaryButtonTitle)
                 .font(BrandBook.Typography.body())
                 .foregroundStyle(BrandBook.Colors.background)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
+                .background(viewModel.isPrimaryActionEnabled ? BrandBook.Colors.gold : BrandBook.Colors.surfaceMuted)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(viewModel.isPrimaryActionEnabled ? BrandBook.Colors.gold : BrandBook.Colors.surfaceMuted)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .disabled(!viewModel.isPrimaryActionEnabled)
     }
 
@@ -192,7 +213,7 @@ struct OnboardingFlowView: View {
     private var favoriteBooksStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             stepTitle("Top books you love")
-            Text("Add up to three titles. One is enough to continue.")
+            Text("Add one title now. Add more only if you want.")
                 .font(BrandBook.Typography.caption())
                 .foregroundStyle(BrandBook.Colors.secondaryText)
 
@@ -205,6 +226,32 @@ struct OnboardingFlowView: View {
                         .background(BrandBook.Colors.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+
+                if viewModel.favoriteBooks.count < 4 {
+                    Button {
+                        viewModel.addFavoriteBookField()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Add another book")
+                            Spacer()
+                        }
+                        .font(BrandBook.Typography.body(size: 16))
+                        .foregroundStyle(BrandBook.Colors.paper)
+                        .padding(12)
+                        .background(BrandBook.Colors.surfaceMuted)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button("Skip for now") {
+                    viewModel.markFavoriteBooksSkipped()
+                }
+                .font(BrandBook.Typography.caption())
+                .foregroundStyle(BrandBook.Colors.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -374,32 +421,55 @@ struct OnboardingFlowView: View {
 
     private var socialProofStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            stepTitle("Loved by readers")
+            if viewModel.isSocialProofLoading || !viewModel.hasSocialProofReady {
+                stepTitle("Preparing your personalized library")
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .tint(BrandBook.Colors.gold)
+                    Text("Analyzing your taste and preparing your character setup...")
+                        .font(BrandBook.Typography.body(size: 16))
+                        .multilineTextAlignment(.center)
+                    Text("This takes a moment and unlocks a better first experience after purchase.")
+                        .font(BrandBook.Typography.caption())
+                        .foregroundStyle(BrandBook.Colors.secondaryText)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 26)
+                .padding(.horizontal, 16)
+                .background(BrandBook.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            } else {
+                stepTitle("Loved by readers")
 
-            HStack(spacing: 10) {
-                Text("4.9")
-                    .font(BrandBook.Typography.title(size: 36))
-                Text("★★★★★")
-                    .font(BrandBook.Typography.section(size: 24))
-                Spacer()
-            }
-            .foregroundStyle(BrandBook.Colors.gold)
+                HStack(spacing: 10) {
+                    Text("4.9")
+                        .font(BrandBook.Typography.title(size: 36))
+                    Text("★★★★★")
+                        .font(BrandBook.Typography.section(size: 24))
+                    Spacer()
+                }
+                .foregroundStyle(BrandBook.Colors.gold)
 
-            VStack(spacing: 10) {
-                ForEach(OnboardingContent.testimonials) { testimonial in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("\"\(testimonial.quote)\"")
-                            .font(BrandBook.Typography.body(size: 16))
-                        Text(testimonial.author)
-                            .font(BrandBook.Typography.caption())
-                            .foregroundStyle(BrandBook.Colors.secondaryText)
+                VStack(spacing: 10) {
+                    ForEach(OnboardingContent.testimonials) { testimonial in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("\"\(testimonial.quote)\"")
+                                .font(BrandBook.Typography.body(size: 16))
+                            Text(testimonial.author)
+                                .font(BrandBook.Typography.caption())
+                                .foregroundStyle(BrandBook.Colors.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(BrandBook.Colors.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(BrandBook.Colors.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
             }
+        }
+        .task {
+            viewModel.startSocialProofPreparationStub()
         }
     }
 
@@ -429,7 +499,7 @@ struct OnboardingFlowView: View {
         VStack(alignment: .leading, spacing: 16) {
             stepTitle("Unlock BookGPT")
 
-            Text("Full access starts now. This app is paid-only.")
+            Text("Your personalized setup is ready. Full access starts now.")
                 .font(BrandBook.Typography.caption())
                 .foregroundStyle(BrandBook.Colors.secondaryText)
 
@@ -552,7 +622,7 @@ struct OnboardingFlowView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Purchase confirmed")
                 .font(BrandBook.Typography.section(size: 19))
-            Text("You now have full access. Enter the app.")
+            Text("Everything is ready: personalized character visuals and your first in-character conversation.")
                 .font(BrandBook.Typography.caption())
                 .foregroundStyle(BrandBook.Colors.secondaryText)
             Button("Enter App") {
@@ -594,20 +664,26 @@ struct OnboardingFlowView: View {
     }
 
     private func flowChips(values: [String], selection: Set<String>, onTap: @escaping (String) -> Void) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 10)], spacing: 10) {
+        VStack(spacing: 10) {
             ForEach(values, id: \.self) { value in
                 let selected = selection.contains(value)
                 Button {
                     onTap(value)
                 } label: {
-                    Text(value)
-                        .font(BrandBook.Typography.body(size: 15))
-                        .foregroundStyle(selected ? BrandBook.Colors.background : BrandBook.Colors.primaryText)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity)
-                        .background(selected ? BrandBook.Colors.gold : BrandBook.Colors.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    HStack(spacing: 10) {
+                        Text(value)
+                            .font(BrandBook.Typography.body(size: 15))
+                            .foregroundStyle(selected ? BrandBook.Colors.background : BrandBook.Colors.primaryText)
+                        Spacer()
+                        Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(selected ? BrandBook.Colors.background : BrandBook.Colors.secondaryText)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity)
+                    .background(selected ? BrandBook.Colors.gold : BrandBook.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -710,7 +786,7 @@ struct OnboardingFlowView: View {
     private func bindingForBook(at index: Int) -> Binding<String> {
         Binding(
             get: { viewModel.favoriteBooks[index] },
-            set: { viewModel.favoriteBooks[index] = $0 }
+            set: { viewModel.updateFavoriteBook(at: index, value: $0) }
         )
     }
 
