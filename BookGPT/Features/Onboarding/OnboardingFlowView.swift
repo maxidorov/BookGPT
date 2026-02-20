@@ -600,8 +600,8 @@ struct OnboardingFlowView: View {
         VStack(spacing: 10) {
             planCard(
                 title: "Annual",
-                price: "$59.99/year",
-                detail: "7-day free trial, then billed $59.99 yearly.",
+                price: "$29.99/year",
+                detail: "Billed annually with auto-renewal.",
                 isSelected: viewModel.selectedPlan == .annual,
                 badge: "Best Value"
             ) {
@@ -609,9 +609,9 @@ struct OnboardingFlowView: View {
             }
 
             planCard(
-                title: "Monthly",
-                price: "$9.99/month",
-                detail: "Billed monthly with auto-renewal.",
+                title: "Weekly",
+                price: "$5.99/month",
+                detail: "3-day free trial, then billed $5.99 weekly.",
                 isSelected: viewModel.selectedPlan == .monthly,
                 badge: nil
             ) {
@@ -690,10 +690,6 @@ struct OnboardingFlowView: View {
             faqRow(
                 question: "Are there limitations?",
                 answer: "Outputs are AI-generated and may occasionally miss nuance. You can regenerate or retry messages."
-            )
-            faqRow(
-                question: "Is there a free mode?",
-                answer: "No. BookGPT is a paid-only experience."
             )
         }
         .padding(14)
