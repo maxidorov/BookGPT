@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingFlowView: View {
     @StateObject private var viewModel: OnboardingFlowViewModel
     @State private var transitionEdge: Edge = .trailing
+    private let screenAnimation = Animation.easeInOut(duration: 0.35)
 
     private let onReachedPaywall: () -> Void
     private let onPurchaseCompleted: () -> Void
@@ -32,13 +33,14 @@ struct OnboardingFlowView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 14)
                     .padding(.bottom, 24)
+                    .padding(.horizontal, 20)
                 }
 
                 if !viewModel.isOnPaywall {
                     primaryActionButton
+                        .padding(.horizontal, 20)
                 }
             }
-            .padding(.horizontal, 20)
             .padding(.top, 14)
             .padding(.bottom, 12)
         }
@@ -58,7 +60,7 @@ struct OnboardingFlowView: View {
                     if viewModel.canGoBack {
                         Button {
                             transitionEdge = .leading
-                            withAnimation(.easeInOut(duration: 0.35)) {
+                            withAnimation(screenAnimation) {
                                 viewModel.goBack()
                             }
                         } label: {
@@ -80,8 +82,9 @@ struct OnboardingFlowView: View {
                     .tint(BrandBook.Colors.gold)
                     .background(BrandBook.Colors.surfaceMuted.opacity(0.5))
                     .clipShape(Capsule())
-                    .animation(.easeInOut(duration: 0.35), value: viewModel.progressValue)
+                    .animation(screenAnimation, value: viewModel.progressValue)
             }
+            .padding(.horizontal, 20)
         }
     }
 
@@ -154,7 +157,7 @@ struct OnboardingFlowView: View {
     private var primaryActionButton: some View {
         Button {
             transitionEdge = .trailing
-            withAnimation(.easeInOut(duration: 0.35)) {
+            withAnimation(screenAnimation) {
                 viewModel.advance()
             }
         } label: {
