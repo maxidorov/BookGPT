@@ -367,6 +367,23 @@ struct OnboardingFlowView: View {
                 .padding(12)
                 .background(BrandBook.Colors.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(OnboardingContent.popularBooks, id: \.self) { book in
+                    Button(book) {
+                        viewModel.usePopularBook(book)
+                    }
+                    .buttonStyle(.plain)
+                    .font(BrandBook.Typography.caption(size: 12))
+                    .foregroundStyle(BrandBook.Colors.secondaryText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(BrandBook.Colors.surfaceMuted)
+                    .clipShape(Capsule())
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -386,17 +403,42 @@ struct OnboardingFlowView: View {
                 .frame(height: 340)
                 .background(BrandBook.Colors.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            } else if let visualization = viewModel.generatedVisualization {
+                CharacterPortraitNetworkView(
+                    bookTitle: viewModel.bookTitle.trimmedOrFallback("Selected Book"),
+                    characterName: visualization.characterName,
+                    imageURL: visualization.imageURL
+                )
             } else {
-                CharacterPortraitStubView(bookTitle: viewModel.bookTitle.trimmedOrFallback("Selected Book"))
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(viewModel.visualizationErrorMessage ?? "We could not load a portrait for this book yet.")
+                        .font(BrandBook.Typography.caption())
+                        .foregroundStyle(BrandBook.Colors.secondaryText)
+                    Button("Try Again") {
+                        viewModel.startVisualizationGeneration()
+                    }
+                    .buttonStyle(.plain)
+                    .font(BrandBook.Typography.body(size: 15))
+                    .foregroundStyle(BrandBook.Colors.background)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(BrandBook.Colors.gold)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 220, alignment: .center)
+                .padding(16)
+                .background(BrandBook.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
 
-            Text("Single portrait preview for now. Full generation pipeline can be connected next.")
+            Text("Single portrait preview generated from live network data.")
                 .font(BrandBook.Typography.caption())
                 .foregroundStyle(BrandBook.Colors.secondaryText)
         }
         .task {
             if !viewModel.hasVisualizationReady && !viewModel.isVisualizationLoading {
-                viewModel.startVisualizationStub()
+                viewModel.startVisualizationGeneration()
             }
         }
     }
@@ -846,38 +888,52 @@ struct OnboardingFlowView: View {
     }
 }
 
-private struct CharacterPortraitStubView: View {
+private struct CharacterPortraitNetworkView: View {
     let bookTitle: String
+    let characterName: String
+    let imageURL: URL
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                BrandBook.Colors.surfaceMuted,
-                                BrandBook.Colors.surface,
-                                BrandBook.Colors.gold.opacity(0.22)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                VStack(spacing: 8) {
-                    Image(systemName: "person.crop.artframe")
-                        .font(.system(size: 72, weight: .semibold))
-                        .foregroundStyle(BrandBook.Colors.gold)
-                    Text("Character Portrait")
-                        .font(BrandBook.Typography.section(size: 20))
-                        .foregroundStyle(BrandBook.Colors.paper)
-                    Text("Stub image")
-                        .font(BrandBook.Typography.caption(size: 14))
-                        .foregroundStyle(BrandBook.Colors.secondaryText)
+            AsyncImage(url: imageURL) { phase in
+                switch phase {
+                case .empty:
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(BrandBook.Colors.surface)
+                        ProgressView()
+                            .tint(BrandBook.Colors.gold)
+                    }
+                case let .success(image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .failure:
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(BrandBook.Colors.surface)
+                        VStack(spacing: 8) {
+                            Image(systemName: "photo")
+                                .font(.system(size: 42, weight: .semibold))
+                                .foregroundStyle(BrandBook.Colors.secondaryText)
+                            Text("Image unavailable")
+                                .font(BrandBook.Typography.caption())
+                                .foregroundStyle(BrandBook.Colors.secondaryText)
+                        }
+                    }
+                @unknown default:
+                    EmptyView()
                 }
             }
+            .frame(maxWidth: UIScreen.main.bounds.width - 40)
             .frame(height: 320)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .frame(maxWidth: .infinity)
 
+            Text(characterName)
+                .font(BrandBook.Typography.section(size: 22))
+                .foregroundStyle(BrandBook.Colors.paper)
             Text("Generated from \(bookTitle)")
                 .font(BrandBook.Typography.caption())
                 .foregroundStyle(BrandBook.Colors.secondaryText)

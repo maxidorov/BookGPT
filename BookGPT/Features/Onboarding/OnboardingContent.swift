@@ -47,6 +47,12 @@ enum OnboardingContent {
         "Painterly classic"
     ]
 
+    static let popularBooks: [String] = [
+        "Harry Potter and the Sorcerer's Stone",
+        "Pride and Prejudice",
+        "The Great Gatsby"
+    ]
+
     static let testimonials: [OnboardingTestimonial] = [
         OnboardingTestimonial(
             quote: "I opened one classic and instantly felt like I was inside the story.",

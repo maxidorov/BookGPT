@@ -38,6 +38,8 @@ final class OnboardingFlowViewModel: ObservableObject {
 
     @Published private(set) var isVisualizationLoading = false
     @Published private(set) var hasVisualizationReady = false
+    @Published private(set) var generatedVisualization: OnboardingCharacterVisualization?
+    @Published private(set) var visualizationErrorMessage: String?
     @Published private(set) var isSocialProofLoading = false
     @Published private(set) var hasSocialProofReady = false
 
@@ -46,8 +48,12 @@ final class OnboardingFlowViewModel: ObservableObject {
     @Published private(set) var purchaseCompleted = false
 
     let selectedHook: String
+    private let visualizationService: any OnboardingCharacterVisualizing
 
-    init(startAtPaywall: Bool) {
+    init(
+        startAtPaywall: Bool,
+        visualizationService: any OnboardingCharacterVisualizing = WikipediaCharacterVisualizationService()
+    ) {
         if startAtPaywall {
             self.steps = [.paywall]
             self.currentStep = .paywall
@@ -56,6 +62,7 @@ final class OnboardingFlowViewModel: ObservableObject {
             self.currentStep = .hook
         }
 
+        self.visualizationService = visualizationService
         self.selectedHook = OnboardingContent.hookOptions.randomElement() ?? OnboardingContent.hookOptions[0]
     }
 
@@ -129,7 +136,7 @@ final class OnboardingFlowViewModel: ObservableObject {
         guard !isOnPaywall else { return }
 
         if currentStep == .bookTitle {
-            startVisualizationStub()
+            startVisualizationGeneration()
         }
         if currentStep == .personalization {
             startSocialProofPreparationStub()
@@ -160,15 +167,29 @@ final class OnboardingFlowViewModel: ObservableObject {
         }
     }
 
-    func startVisualizationStub() {
+    func usePopularBook(_ title: String) {
+        bookTitle = title
+    }
+
+    func startVisualizationGeneration() {
         guard !isVisualizationLoading else { return }
+        generatedVisualization = nil
+        visualizationErrorMessage = nil
         hasVisualizationReady = false
         isVisualizationLoading = true
 
+        let selectedBook = bookTitle.trimmed
         Task {
-            try? await Task.sleep(nanoseconds: 1_400_000_000)
-            isVisualizationLoading = false
-            hasVisualizationReady = true
+            do {
+                let visualization = try await visualizationService.generateCharacterVisualization(for: selectedBook)
+                isVisualizationLoading = false
+                generatedVisualization = visualization
+                hasVisualizationReady = true
+            } catch {
+                isVisualizationLoading = false
+                hasVisualizationReady = false
+                visualizationErrorMessage = "Could not generate a character portrait for this title yet. Try another book."
+            }
         }
     }
 
