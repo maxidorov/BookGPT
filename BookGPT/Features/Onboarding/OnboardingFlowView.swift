@@ -3,6 +3,8 @@ import SwiftUI
 struct OnboardingFlowView: View {
     @StateObject private var viewModel: OnboardingFlowViewModel
     @State private var transitionEdge: Edge = .trailing
+    @State private var isHookHeroVisible = false
+    @State private var areHookBubblesVisible = false
     private let screenAnimation = Animation.easeInOut(duration: 0.35)
 
     private let onReachedPaywall: () -> Void
@@ -127,8 +129,6 @@ struct OnboardingFlowView: View {
             hookStep
         case .genres:
             genresStep
-        case .favoriteBooks:
-            favoriteBooksStep
         case .readingGoal:
             readingGoalStep
         case .archetypes:
@@ -188,15 +188,61 @@ struct OnboardingFlowView: View {
                 .foregroundStyle(BrandBook.Colors.secondaryText)
                 .padding(.top, 2)
 
-            featureStrip([
-                "Portraits from book context",
-                "Persona-first conversations",
-                "Built for serious readers"
-            ])
+            hookHeroSection
+                .scaleEffect(isHookHeroVisible ? 1.0 : 0.96)
+                .opacity(isHookHeroVisible ? 1 : 0)
+                .onAppear {
+                    guard !isHookHeroVisible else { return }
+                    withAnimation(.easeOut(duration: 0.45)) {
+                        isHookHeroVisible = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                            areHookBubblesVisible = true
+                        }
+                    }
+                }
         }
         .padding(20)
         .background(BrandBook.Colors.surface.opacity(0.92))
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+    }
+
+    private var hookHeroSection: some View {
+        ZStack {
+            Image("OnboardingHeroCharacters")
+                .resizable()
+                .scaledToFill()
+                .overlay(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.12),
+                            Color.black.opacity(0.38),
+                            Color.black.opacity(0.18)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+
+            if areHookBubblesVisible {
+                hookBubble("Portraits from book context")
+                    .offset(x: -78, y: -68)
+                    .transition(.scale.combined(with: .opacity))
+                hookBubble("Persona-first conversations")
+                    .offset(x: 58, y: -18)
+                    .transition(.scale.combined(with: .opacity))
+                hookBubble("Built for serious readers")
+                    .offset(x: 10, y: 70)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .frame(height: 270)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(BrandBook.Colors.paper.opacity(0.14), lineWidth: 1)
+        )
     }
 
     private var genresStep: some View {
@@ -211,52 +257,6 @@ struct OnboardingFlowView: View {
                 selection: viewModel.selectedGenres,
                 onTap: toggleGenre
             )
-        }
-    }
-
-    private var favoriteBooksStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            stepTitle("Top books you love")
-            Text("Add one title now. Add more only if you want.")
-                .font(BrandBook.Typography.caption())
-                .foregroundStyle(BrandBook.Colors.secondaryText)
-
-            VStack(spacing: 12) {
-                ForEach(0..<viewModel.favoriteBooks.count, id: \.self) { index in
-                    TextField("Book #\(index + 1)", text: bindingForBook(at: index))
-                        .textInputAutocapitalization(.words)
-                        .font(BrandBook.Typography.body())
-                        .padding(12)
-                        .background(BrandBook.Colors.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-
-                if viewModel.favoriteBooks.count < 4 {
-                    Button {
-                        viewModel.addFavoriteBookField()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus.circle.fill")
-                            Text("Add another book")
-                            Spacer()
-                        }
-                        .font(BrandBook.Typography.body(size: 16))
-                        .foregroundStyle(BrandBook.Colors.paper)
-                        .padding(12)
-                        .background(BrandBook.Colors.surfaceMuted)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                Button("Skip for now") {
-                    viewModel.markFavoriteBooksSkipped()
-                }
-                .font(BrandBook.Typography.caption())
-                .foregroundStyle(BrandBook.Colors.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
         }
     }
 
@@ -694,21 +694,18 @@ struct OnboardingFlowView: View {
         }
     }
 
-    private func featureStrip(_ items: [String]) -> some View {
-        VStack(spacing: 8) {
-            ForEach(items, id: \.self) { item in
-                HStack(spacing: 10) {
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(BrandBook.Colors.gold)
-                    Text(item)
-                        .font(BrandBook.Typography.body(size: 16))
-                    Spacer()
-                }
-                .padding(10)
-                .background(BrandBook.Colors.surfaceMuted)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-        }
+    private func hookBubble(_ text: String) -> some View {
+        Text(text)
+            .font(BrandBook.Typography.body(size: 13))
+            .foregroundStyle(BrandBook.Colors.paper)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(BrandBook.Colors.background.opacity(0.72))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(BrandBook.Colors.gold.opacity(0.38), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private func selectionRow(title: String, subtitle: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -785,13 +782,6 @@ struct OnboardingFlowView: View {
                 .foregroundStyle(BrandBook.Colors.primaryText)
             Spacer()
         }
-    }
-
-    private func bindingForBook(at index: Int) -> Binding<String> {
-        Binding(
-            get: { viewModel.favoriteBooks[index] },
-            set: { viewModel.updateFavoriteBook(at: index, value: $0) }
-        )
     }
 
     private func goalSubtitle(_ goal: String) -> String {

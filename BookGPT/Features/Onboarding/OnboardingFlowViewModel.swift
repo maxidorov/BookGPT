@@ -6,7 +6,6 @@ final class OnboardingFlowViewModel: ObservableObject {
     enum Step: Int, CaseIterable {
         case hook
         case genres
-        case favoriteBooks
         case readingGoal
         case archetypes
         case conversationVibe
@@ -29,8 +28,6 @@ final class OnboardingFlowViewModel: ObservableObject {
     @Published private(set) var currentStep: Step
 
     @Published var selectedGenres: Set<String> = []
-    @Published var favoriteBooks: [String] = [""]
-    @Published var skippedFavoriteBooks = false
     @Published var selectedReadingGoal: String?
 
     @Published var selectedArchetypes: Set<String> = []
@@ -92,8 +89,6 @@ final class OnboardingFlowViewModel: ObservableObject {
         switch currentStep {
         case .genres:
             return !selectedGenres.isEmpty
-        case .favoriteBooks:
-            return skippedFavoriteBooks || favoriteBooks.contains { !$0.trimmed.isEmpty }
         case .readingGoal:
             return selectedReadingGoal != nil
         case .archetypes:
@@ -186,24 +181,6 @@ final class OnboardingFlowViewModel: ObservableObject {
             isSocialProofLoading = false
             hasSocialProofReady = true
         }
-    }
-
-    func addFavoriteBookField() {
-        guard favoriteBooks.count < 4 else { return }
-        favoriteBooks.append("")
-    }
-
-    func updateFavoriteBook(at index: Int, value: String) {
-        guard favoriteBooks.indices.contains(index) else { return }
-        favoriteBooks[index] = value
-        if !value.trimmed.isEmpty {
-            skippedFavoriteBooks = false
-        }
-    }
-
-    func markFavoriteBooksSkipped() {
-        skippedFavoriteBooks = true
-        favoriteBooks = [""]
     }
 
     private var indexOfCurrentStep: Int {
