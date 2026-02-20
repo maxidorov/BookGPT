@@ -29,6 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--prompt", required=True, help="Prompt for image generation")
     parser.add_argument("--asset-name", required=True, help="Name of .imageset in Assets.xcassets")
     parser.add_argument("--model", default="openai/gpt-5-image", help="OpenRouter model id")
+    parser.add_argument("--size", default="1024x1024", help="Requested image size, e.g. 512x512, 1024x1024, 1536x1024")
     parser.add_argument("--aspect-ratio", default="1:1", help="Image aspect ratio (e.g. 1:1, 16:9)")
     parser.add_argument("--image-size", default="1K", help="Image size tier (1K, 2K, 4K)")
     parser.add_argument("--include-text", action="store_true", help="Request both image and text modalities")
@@ -173,15 +174,12 @@ def make_imageset(catalog_path: pathlib.Path, asset_name: str, image_bytes: byte
     asset_dir = catalog_path / f"{asset_name}.imageset"
     asset_dir.mkdir(parents=True, exist_ok=True)
 
-    filenames = [f"{asset_name}@1x.png", f"{asset_name}@2x.png", f"{asset_name}@3x.png"]
-    for filename in filenames:
-        (asset_dir / filename).write_bytes(image_bytes)
+    filename = f"{asset_name}.png"
+    (asset_dir / filename).write_bytes(image_bytes)
 
     contents = {
         "images": [
-            {"idiom": "universal", "filename": filenames[0], "scale": "1x"},
-            {"idiom": "universal", "filename": filenames[1], "scale": "2x"},
-            {"idiom": "universal", "filename": filenames[2], "scale": "3x"},
+            {"idiom": "universal", "filename": filename, "scale": "1x"},
         ],
         "info": {"version": 1, "author": "xcode"},
     }
@@ -226,7 +224,9 @@ def main() -> int:
         "messages": [{"role": "user", "content": args.prompt}],
         "modalities": modalities,
         "stream": False,
+        "size": args.size,
         "image_config": {
+            "size": args.size,
             "aspect_ratio": args.aspect_ratio,
             "image_size": args.image_size,
         },

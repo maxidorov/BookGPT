@@ -9,10 +9,12 @@
 python3 Scripts/generate_openrouter_asset.py \
   --prompt "Cinematic portrait of Sherlock Holmes in Victorian London" \
   --asset-name SherlockPortrait \
+  --size 1024x1024 \
   --model openai/gpt-5-image
 ```
 
 Default output location is `BookGPT/Assets.xcassets/<AssetName>.imageset`.
+The script writes a single universal image file (no duplicated 2x/3x copies).
 
 ## Use in SwiftUI
 ```swift
