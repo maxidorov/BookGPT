@@ -54,6 +54,7 @@ struct AppRootView: View {
                     CharactersListView(
                         book: book,
                         charactersRepository: dependencies.charactersRepository,
+                        portraitService: dependencies.portraitService,
                         historyStore: dependencies.historyStore
                     ) { selectedCharacter in
                         path.append(.chat(book: book, character: selectedCharacter))

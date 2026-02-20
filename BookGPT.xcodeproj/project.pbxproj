@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A1CF5EA32F461A70001EA3E9 /* ChatKit in Frameworks */ = {isa = PBXBuildFile; productRef = B00100112F4620005306B8A1 /* ChatKit */; };
 		A1CF5EA42F461A70001EA3E9 /* LLMKit in Frameworks */ = {isa = PBXBuildFile; productRef = B00100122F4620005306B8A1 /* LLMKit */; };
+		F0A100012F9000015306B8A1 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = F0A100112F9000015306B8A1 /* RevenueCat */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F0A100012F9000015306B8A1 /* RevenueCat in Frameworks */,
 				A1CF5EA42F461A70001EA3E9 /* LLMKit in Frameworks */,
 				A1CF5EA32F461A70001EA3E9 /* ChatKit in Frameworks */,
 			);
@@ -74,6 +76,7 @@
 			packageProductDependencies = (
 				B00100112F4620005306B8A1 /* ChatKit */,
 				B00100122F4620005306B8A1 /* LLMKit */,
+				F0A100112F9000015306B8A1 /* RevenueCat */,
 			);
 			productName = BookGPT;
 			productReference = A177D3FF2F46161E005306B8 /* BookGPT.app */;
@@ -106,6 +109,7 @@
 			packageReferences = (
 				B00100012F4620005306B8A1 /* XCLocalSwiftPackageReference "../ChatKit" */,
 				B00100022F4620005306B8A1 /* XCLocalSwiftPackageReference "../LLMKit" */,
+				F0A100102F9000015306B8A1 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A177D4002F46161E005306B8 /* Products */;
@@ -367,6 +371,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		F0A100102F9000015306B8A1 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.12.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		B00100112F4620005306B8A1 /* ChatKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -377,6 +392,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B00100022F4620005306B8A1 /* XCLocalSwiftPackageReference "../LLMKit" */;
 			productName = LLMKit;
+		};
+		F0A100112F9000015306B8A1 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F0A100102F9000015306B8A1 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

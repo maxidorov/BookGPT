@@ -8,6 +8,7 @@ struct CharactersListView: View {
     init(
         book: Book,
         charactersRepository: CharactersRepository,
+        portraitService: CharacterPortraitGenerating,
         historyStore: BookHistoryStore,
         onCharacterSelected: @escaping (BookCharacter) -> Void
     ) {
@@ -16,6 +17,7 @@ struct CharactersListView: View {
             wrappedValue: CharactersListViewModel(
                 book: book,
                 charactersRepository: charactersRepository,
+                portraitService: portraitService,
                 historyStore: historyStore
             )
         )
@@ -28,6 +30,12 @@ struct CharactersListView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
+                    if let generationErrorMessage = viewModel.generationErrorMessage {
+                        Text(generationErrorMessage)
+                            .font(BrandBook.Typography.caption())
+                            .foregroundStyle(BrandBook.Colors.error)
+                    }
+
                     switch viewModel.state {
                     case .loading:
                         loadingContent
@@ -39,22 +47,36 @@ struct CharactersListView: View {
                         } else {
                             ForEach(characters) { character in
                                 Button {
-                                    onCharacterSelected(character)
+                                    Task {
+                                        let prepared = await viewModel.prepareCharacterForChat(character)
+                                        if prepared {
+                                            onCharacterSelected(character)
+                                        }
+                                    }
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(character.name)
-                                            .font(BrandBook.Typography.section(size: 20))
-                                            .foregroundStyle(BrandBook.Colors.primaryText)
-                                        Text(character.description)
-                                            .font(BrandBook.Typography.caption())
-                                            .foregroundStyle(BrandBook.Colors.secondaryText)
-                                            .fixedSize(horizontal: false, vertical: true)
+                                    HStack(alignment: .top, spacing: 10) {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(character.name)
+                                                .font(BrandBook.Typography.section(size: 20))
+                                                .foregroundStyle(BrandBook.Colors.primaryText)
+                                            Text(character.description)
+                                                .font(BrandBook.Typography.caption())
+                                                .foregroundStyle(BrandBook.Colors.secondaryText)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                        Spacer()
+                                        if viewModel.generatingCharacterID == character.id {
+                                            ProgressView()
+                                                .controlSize(.small)
+                                                .tint(BrandBook.Colors.gold)
+                                        }
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(12)
                                     .background(BrandBook.Colors.surface)
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 }
+                                .disabled(viewModel.generatingCharacterID != nil)
                             }
                         }
                     case .error(let message):

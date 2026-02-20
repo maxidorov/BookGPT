@@ -48,7 +48,7 @@ enum OnboardingContent {
     ]
 
     static let popularBooks: [String] = [
-        "Harry Potter and the Sorcerer's Stone",
+        "The Hobbit",
         "Pride and Prejudice",
         "The Great Gatsby"
     ]

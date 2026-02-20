@@ -30,12 +30,28 @@ final class SwiftDataBookHistoryStore: BookHistoryStore {
         }
     }
 
+    @Model
+    final class PortraitRecord {
+        @Attribute(.unique) var key: String
+        var bookKey: String
+        var characterName: String
+        var imageData: Data
+
+        init(key: String, bookKey: String, characterName: String, imageData: Data) {
+            self.key = key
+            self.bookKey = bookKey
+            self.characterName = characterName
+            self.imageData = imageData
+        }
+    }
+
     private let context: ModelContext
     private var recentBooksCache: [Book] = []
     private var charactersCache: [String: [BookCharacter]] = [:]
+    private var portraitsCache: [String: Data] = [:]
 
     init() throws {
-        let schema = Schema([RecentBookRecord.self, CharacterRecord.self])
+        let schema = Schema([RecentBookRecord.self, CharacterRecord.self, PortraitRecord.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         let container = try ModelContainer(for: schema, configurations: [configuration])
         self.context = ModelContext(container)
@@ -132,6 +148,59 @@ final class SwiftDataBookHistoryStore: BookHistoryStore {
         }
     }
 
+    func loadPortraitData(for character: BookCharacter, in book: Book) -> Data? {
+        let key = portraitKey(for: character, in: book)
+        if let cached = portraitsCache[key] {
+            return cached
+        }
+
+        do {
+            let descriptor = FetchDescriptor<PortraitRecord>(
+                predicate: #Predicate { $0.key == key }
+            )
+            guard let record = try context.fetch(descriptor).first else {
+                return nil
+            }
+            portraitsCache[key] = record.imageData
+            return record.imageData
+        } catch {
+            print("BookHistoryStore.loadPortraitData error: \(error)")
+            return nil
+        }
+    }
+
+    func savePortraitData(_ data: Data, for character: BookCharacter, in book: Book) {
+        let key = portraitKey(for: character, in: book)
+        let bookKey = book.storageKey
+        let characterName = character.name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        do {
+            let descriptor = FetchDescriptor<PortraitRecord>(
+                predicate: #Predicate { $0.key == key }
+            )
+
+            if let existing = try context.fetch(descriptor).first {
+                existing.imageData = data
+                existing.characterName = characterName
+                existing.bookKey = bookKey
+            } else {
+                context.insert(
+                    PortraitRecord(
+                        key: key,
+                        bookKey: bookKey,
+                        characterName: characterName,
+                        imageData: data
+                    )
+                )
+            }
+
+            try context.save()
+            portraitsCache[key] = data
+        } catch {
+            print("BookHistoryStore.savePortraitData error: \(error)")
+        }
+    }
+
     private func fetchRecentBooksFromStorage() -> [Book] {
         do {
             var descriptor = FetchDescriptor<RecentBookRecord>(
@@ -147,11 +216,16 @@ final class SwiftDataBookHistoryStore: BookHistoryStore {
             return []
         }
     }
+
+    private func portraitKey(for character: BookCharacter, in book: Book) -> String {
+        "\(book.storageKey)|\(character.name.normalizedStoragePart)"
+    }
 }
 
 final class InMemoryBookHistoryStore: BookHistoryStore {
     private var recentBooks: [Book] = []
     private var charactersByBookKey: [String: [BookCharacter]] = [:]
+    private var portraitByCharacterKey: [String: Data] = [:]
 
     func loadRecentBooks() -> [Book] {
         recentBooks
@@ -171,5 +245,25 @@ final class InMemoryBookHistoryStore: BookHistoryStore {
 
     func saveCharacters(_ characters: [BookCharacter], for book: Book) {
         charactersByBookKey[book.storageKey] = characters
+    }
+
+    func loadPortraitData(for character: BookCharacter, in book: Book) -> Data? {
+        portraitByCharacterKey[portraitKey(for: character, in: book)]
+    }
+
+    func savePortraitData(_ data: Data, for character: BookCharacter, in book: Book) {
+        portraitByCharacterKey[portraitKey(for: character, in: book)] = data
+    }
+
+    private func portraitKey(for character: BookCharacter, in book: Book) -> String {
+        "\(book.storageKey)|\(character.name.normalizedStoragePart)"
+    }
+}
+
+private extension String {
+    var normalizedStoragePart: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
     }
 }

@@ -18,11 +18,6 @@ final class OnboardingFlowViewModel: ObservableObject {
         case paywall
     }
 
-    enum PlanOption {
-        case annual
-        case monthly
-    }
-
     @Published private(set) var steps: [Step]
     @Published private(set) var currentStep: Step
 
@@ -43,17 +38,22 @@ final class OnboardingFlowViewModel: ObservableObject {
     @Published private(set) var hasPersonalizationReady = false
     @Published private(set) var activeReviewIndex: Int = 0
 
-    @Published var selectedPlan: PlanOption = .annual
+    @Published private(set) var paywallPlans: [PaywallPlan] = []
+    @Published var selectedPlanID: String?
+    @Published private(set) var isPaywallLoading = false
+    @Published private(set) var paywallErrorMessage: String?
     @Published private(set) var isProcessingPurchase = false
     @Published private(set) var purchaseCompleted = false
 
     let selectedHook: String
     private let visualizationService: any OnboardingCharacterVisualizing
+    private let paywallService: any PaywallServicing
     private var personalizationTask: Task<Void, Never>?
 
     init(
         startAtPaywall: Bool,
-        visualizationService: any OnboardingCharacterVisualizing = WikipediaCharacterVisualizationService()
+        visualizationService: any OnboardingCharacterVisualizing = WikipediaCharacterVisualizationService(),
+        paywallService: any PaywallServicing = RevenueCatPaywallService()
     ) {
         if startAtPaywall {
             self.steps = [.paywall]
@@ -64,6 +64,7 @@ final class OnboardingFlowViewModel: ObservableObject {
         }
 
         self.visualizationService = visualizationService
+        self.paywallService = paywallService
         self.selectedHook = OnboardingContent.hookOptions.randomElement() ?? OnboardingContent.hookOptions[0]
     }
 
@@ -93,7 +94,10 @@ final class OnboardingFlowViewModel: ObservableObject {
         case .personalization:
             return hasPersonalizationReady ? "Continue" : "Preparing..."
         case .paywall:
-            return purchaseCompleted ? "Enter App" : "Unlock BookGPT"
+            if purchaseCompleted {
+                return "Enter App"
+            }
+            return isProcessingPurchase ? "Processing..." : "Unlock BookGPT"
         default:
             return "Continue"
         }
@@ -118,7 +122,7 @@ final class OnboardingFlowViewModel: ObservableObject {
         case .personalization:
             return hasPersonalizationReady
         case .paywall:
-            return !isProcessingPurchase
+            return !isProcessingPurchase && !isPaywallLoading && selectedPlanID != nil
         default:
             return true
         }
@@ -150,24 +154,60 @@ final class OnboardingFlowViewModel: ObservableObject {
         currentStep = steps[indexOfCurrentStep + 1]
     }
 
-    func restorePurchaseStub(onCompletion: (() -> Void)? = nil) {
+    func purchase(onCompletion: (() -> Void)? = nil) {
+        guard !isProcessingPurchase else { return }
+        guard let selectedPlanID else { return }
+
         isProcessingPurchase = true
         Task {
-            try? await Task.sleep(nanoseconds: 700_000_000)
-            isProcessingPurchase = false
-            purchaseCompleted = true
-            onCompletion?()
+            defer { isProcessingPurchase = false }
+            do {
+                let isActive = try await paywallService.purchase(planID: selectedPlanID)
+                purchaseCompleted = isActive
+                if isActive {
+                    onCompletion?()
+                }
+            } catch {
+                paywallErrorMessage = "Purchase failed. Please try again."
+            }
         }
     }
 
-    func purchaseStub(onCompletion: (() -> Void)? = nil) {
+    func restorePurchase(onCompletion: (() -> Void)? = nil) {
         guard !isProcessingPurchase else { return }
         isProcessingPurchase = true
+
         Task {
-            try? await Task.sleep(nanoseconds: 1_100_000_000)
-            isProcessingPurchase = false
-            purchaseCompleted = true
-            onCompletion?()
+            defer { isProcessingPurchase = false }
+            do {
+                let isActive = try await paywallService.restorePurchases()
+                purchaseCompleted = isActive
+                if isActive {
+                    onCompletion?()
+                } else {
+                    paywallErrorMessage = "No active subscription found to restore."
+                }
+            } catch {
+                paywallErrorMessage = "Restore failed. Please try again."
+            }
+        }
+    }
+
+    func loadPaywallIfNeeded() {
+        guard paywallPlans.isEmpty, !isPaywallLoading else { return }
+        isPaywallLoading = true
+        paywallErrorMessage = nil
+
+        Task {
+            do {
+                let plans = try await paywallService.fetchPlans()
+                paywallPlans = plans
+                selectedPlanID = plans.first?.id
+                isPaywallLoading = false
+            } catch {
+                isPaywallLoading = false
+                paywallErrorMessage = "Could not load subscription options."
+            }
         }
     }
 

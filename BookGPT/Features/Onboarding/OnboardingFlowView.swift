@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 struct OnboardingFlowView: View {
     @StateObject private var viewModel: OnboardingFlowViewModel
@@ -6,6 +7,7 @@ struct OnboardingFlowView: View {
     @State private var isHookHeroVisible = false
     @State private var areHookBubblesVisible = false
     @State private var reviewPage: Int = 0
+    @State private var activeLegalDocument: LegalDocument?
     private let screenAnimation = Animation.easeInOut(duration: 0.35)
 
     private let onReachedPaywall: () -> Void
@@ -51,6 +53,20 @@ struct OnboardingFlowView: View {
         .onChange(of: viewModel.currentStep) { _, step in
             if step == .paywall {
                 onReachedPaywall()
+            }
+        }
+        .sheet(item: $activeLegalDocument) { document in
+            NavigationStack {
+                InAppWebView(url: document.url)
+                    .navigationTitle(document.title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Done") {
+                                activeLegalDocument = nil
+                            }
+                        }
+                    }
             }
         }
     }
@@ -594,28 +610,37 @@ struct OnboardingFlowView: View {
                 confirmationPanel
             }
         }
+        .task {
+            viewModel.loadPaywallIfNeeded()
+        }
     }
 
     private var paywallPlans: some View {
         VStack(spacing: 10) {
-            planCard(
-                title: "Annual",
-                price: "$29.99/year",
-                detail: "Billed annually with auto-renewal.",
-                isSelected: viewModel.selectedPlan == .annual,
-                badge: "Best Value"
-            ) {
-                viewModel.selectedPlan = .annual
-            }
-
-            planCard(
-                title: "Weekly",
-                price: "$5.99/month",
-                detail: "3-day free trial, then billed $5.99 weekly.",
-                isSelected: viewModel.selectedPlan == .monthly,
-                badge: nil
-            ) {
-                viewModel.selectedPlan = .monthly
+            if viewModel.isPaywallLoading {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .tint(BrandBook.Colors.gold)
+                    Text("Loading plans...")
+                        .font(BrandBook.Typography.caption())
+                        .foregroundStyle(BrandBook.Colors.secondaryText)
+                    Spacer()
+                }
+                .padding(14)
+                .background(BrandBook.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            } else {
+                ForEach(viewModel.paywallPlans) { plan in
+                    planCard(
+                        title: plan.title,
+                        price: plan.price,
+                        detail: plan.trialDetail ?? plan.billingDetail,
+                        isSelected: viewModel.selectedPlanID == plan.id,
+                        badge: plan.title == "Annual" ? "Best Value" : nil
+                    ) {
+                        viewModel.selectedPlanID = plan.id
+                    }
+                }
             }
         }
     }
@@ -626,18 +651,20 @@ struct OnboardingFlowView: View {
                 .font(BrandBook.Typography.caption(size: 14))
                 .foregroundStyle(BrandBook.Colors.secondaryText)
 
-            if viewModel.selectedPlan == .annual {
-                Text("Total billed amount: $59.99 per year after trial. Trial terms: 7 days free, then annual billing begins.")
-                    .font(BrandBook.Typography.caption(size: 14))
-                    .foregroundStyle(BrandBook.Colors.secondaryText)
-            } else {
-                Text("Total billed amount: $9.99 per month. Trial terms: none for monthly plan.")
+            if let selectedPlan = viewModel.paywallPlans.first(where: { $0.id == viewModel.selectedPlanID }) {
+                Text("Total billed amount: \(selectedPlan.price). \(selectedPlan.billingDetail). \(selectedPlan.trialDetail ?? "No trial.")")
                     .font(BrandBook.Typography.caption(size: 14))
                     .foregroundStyle(BrandBook.Colors.secondaryText)
             }
 
+            if let paywallErrorMessage = viewModel.paywallErrorMessage {
+                Text(paywallErrorMessage)
+                    .font(BrandBook.Typography.caption(size: 14))
+                    .foregroundStyle(BrandBook.Colors.error)
+            }
+
             Button {
-                viewModel.purchaseStub()
+                viewModel.purchase()
             } label: {
                 HStack {
                     if viewModel.isProcessingPurchase {
@@ -654,17 +681,25 @@ struct OnboardingFlowView: View {
             .buttonStyle(.plain)
             .background(BrandBook.Colors.gold)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .disabled(viewModel.isProcessingPurchase)
+            .disabled(viewModel.isProcessingPurchase || viewModel.isPaywallLoading || viewModel.selectedPlanID == nil)
 
             HStack {
                 Button("Restore") {
-                    viewModel.restorePurchaseStub()
+                    viewModel.restorePurchase()
                 }
 
                 Spacer()
 
-                Link("Terms", destination: URL(string: "https://example.com/terms")!)
-                Link("Privacy", destination: URL(string: "https://example.com/privacy")!)
+                if let termsURL = AppConfig.termsOfUseURL {
+                    Button("Terms") {
+                        activeLegalDocument = LegalDocument(title: "Terms of Use", url: termsURL)
+                    }
+                }
+                if let privacyURL = AppConfig.privacyPolicyURL {
+                    Button("Privacy") {
+                        activeLegalDocument = LegalDocument(title: "Privacy Policy", url: privacyURL)
+                    }
+                }
             }
             .font(BrandBook.Typography.caption(size: 14))
             .foregroundStyle(BrandBook.Colors.secondaryText)
@@ -954,6 +989,26 @@ private struct CharacterPortraitNetworkView: View {
             Text("Generated from \(bookTitle)")
                 .font(BrandBook.Typography.caption())
                 .foregroundStyle(BrandBook.Colors.secondaryText)
+        }
+    }
+}
+
+private struct LegalDocument: Identifiable {
+    let id = UUID()
+    let title: String
+    let url: URL
+}
+
+private struct InAppWebView: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        WKWebView(frame: .zero)
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        if webView.url != url {
+            webView.load(URLRequest(url: url))
         }
     }
 }

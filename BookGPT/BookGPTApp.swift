@@ -1,9 +1,14 @@
 import SwiftUI
 import UIKit
+import RevenueCat
 
 @main
 struct BookGPTApp: App {
     init() {
+        if !AppConfig.revenueCatAPIKey.isEmpty {
+            Purchases.configure(withAPIKey: AppConfig.revenueCatAPIKey)
+        }
+
         let titleAttributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: BrandBook.Colors.uiPaper,
             .font: BrandBook.Typography.uiTitle(size: 19)

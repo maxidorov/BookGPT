@@ -125,7 +125,6 @@ struct WikipediaCharacterVisualizationService: OnboardingCharacterVisualizing {
     }
 
     private static let curatedMap: [(String, String)] = [
-        ("harry potter", "Harry Potter"),
         ("sherlock holmes", "Sherlock Holmes"),
         ("pride and prejudice", "Elizabeth Bennet"),
         ("great gatsby", "Jay Gatsby"),

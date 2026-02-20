@@ -5,6 +5,7 @@ struct AppDependencies {
     let booksRepository: BooksRepository
     let charactersRepository: CharactersRepository
     let chatService: CharacterChatService
+    let portraitService: CharacterPortraitGenerating
     let historyStore: BookHistoryStore
 
     static let live: AppDependencies = {
@@ -56,6 +57,7 @@ struct AppDependencies {
                     delegate: LLMConsoleLogger.shared
                 )
             ),
+            portraitService: OpenRouterCharacterPortraitService(),
             historyStore: historyStore
         )
     }()
