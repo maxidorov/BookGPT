@@ -212,7 +212,7 @@ struct OnboardingFlowView: View {
             Image("OnboardingHeroCharacters")
                 .resizable()
                 .scaledToFill()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: UIScreen.main.bounds.width - 32, maxHeight: .infinity)
                 .clipped()
                 .overlay(
                     LinearGradient(
@@ -225,17 +225,30 @@ struct OnboardingFlowView: View {
                         endPoint: .bottom
                     )
                 )
+                .clipped()
 
             if areHookBubblesVisible {
-                hookBubble("Portraits from book context")
-                    .offset(x: -84, y: -108)
-                    .transition(.scale.combined(with: .opacity))
-                hookBubble("Persona-first conversations")
-                    .offset(x: 68, y: -12)
-                    .transition(.scale.combined(with: .opacity))
-                hookBubble("Built for serious readers")
-                    .offset(x: 6, y: 122)
-                    .transition(.scale.combined(with: .opacity))
+                VStack {
+                    HStack {
+                        hookBubble("Portraits from book context")
+                        Spacer(minLength: 8)
+                    }
+                    .padding(.top, 18)
+                    .padding(.horizontal, 12)
+
+                    HStack {
+                        Spacer(minLength: 8)
+                        hookBubble("Persona-first conversations")
+                    }
+                    .padding(.top, 12)
+                    .padding(.horizontal, 12)
+
+                    hookBubble("Built for serious readers")
+                        .padding(.top, 18)
+                        .padding(.horizontal, 12)
+                }
+                .frame(maxWidth: .infinity, maxHeight: 100)
+                .transition(.opacity.combined(with: .scale))
             }
         }
         .frame(maxWidth: .infinity)
@@ -700,6 +713,8 @@ struct OnboardingFlowView: View {
     private func hookBubble(_ text: String) -> some View {
         Text(text)
             .font(BrandBook.Typography.body(size: 13))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .foregroundStyle(BrandBook.Colors.paper)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
@@ -875,4 +890,22 @@ private extension String {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? fallback : trimmed
     }
+}
+
+#Preview("Onboarding Flow") {
+    OnboardingFlowView(
+        startAtPaywall: false,
+        onReachedPaywall: {},
+        onPurchaseCompleted: {}
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Onboarding Paywall") {
+    OnboardingFlowView(
+        startAtPaywall: true,
+        onReachedPaywall: {},
+        onPurchaseCompleted: {}
+    )
+    .preferredColorScheme(.dark)
 }
