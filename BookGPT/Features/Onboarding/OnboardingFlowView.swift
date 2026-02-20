@@ -202,10 +202,9 @@ struct OnboardingFlowView: View {
                         }
                     }
                 }
+            Spacer(minLength: 0)
         }
-        .padding(20)
-        .background(BrandBook.Colors.surface.opacity(0.92))
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .frame(minHeight: UIScreen.main.bounds.height * 0.74, alignment: .top)
     }
 
     private var hookHeroSection: some View {
@@ -213,6 +212,8 @@ struct OnboardingFlowView: View {
             Image("OnboardingHeroCharacters")
                 .resizable()
                 .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
                 .overlay(
                     LinearGradient(
                         colors: [
@@ -227,17 +228,19 @@ struct OnboardingFlowView: View {
 
             if areHookBubblesVisible {
                 hookBubble("Portraits from book context")
-                    .offset(x: -78, y: -68)
+                    .offset(x: -84, y: -108)
                     .transition(.scale.combined(with: .opacity))
                 hookBubble("Persona-first conversations")
-                    .offset(x: 58, y: -18)
+                    .offset(x: 68, y: -12)
                     .transition(.scale.combined(with: .opacity))
                 hookBubble("Built for serious readers")
-                    .offset(x: 10, y: 70)
+                    .offset(x: 6, y: 122)
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .frame(height: 270)
+        .frame(maxWidth: .infinity)
+        .frame(height: min(UIScreen.main.bounds.height * 0.56, 560))
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
