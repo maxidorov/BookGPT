@@ -3,6 +3,7 @@ import SwiftUI
 struct AppRootView: View {
     private let dependencies: AppDependencies
     @State private var path: [AppRoute] = []
+    @State private var onboardingFlowIdentity = UUID()
 
     @AppStorage("bookgpt_has_completed_onboarding") private var hasCompletedOnboarding = false
     @AppStorage("bookgpt_is_paid_user") private var isPaidUser = false
@@ -24,8 +25,14 @@ struct AppRootView: View {
                     onPurchaseCompleted: {
                         hasCompletedOnboarding = true
                         isPaidUser = true
+                    },
+                    onPaywallClosed: {
+                        hasCompletedOnboarding = true
+                        isPaidUser = true
+                        onboardingFlowIdentity = UUID()
                     }
                 )
+                .id(onboardingFlowIdentity)
             }
         }
         .background(BrandBook.Colors.background.ignoresSafeArea())

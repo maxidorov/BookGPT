@@ -11,7 +11,7 @@ struct PaywallPlan: Identifiable, Equatable {
 }
 
 protocol PaywallServicing {
-    func fetchPlans() async throws -> [PaywallPlan]
+    func fetchPaywall() async throws -> (plans: [PaywallPlan], showCloseButton: Bool)
     func purchase(planID: String) async throws -> Bool
     func restorePurchases() async throws -> Bool
 }
@@ -19,11 +19,11 @@ protocol PaywallServicing {
 final class RevenueCatPaywallService: PaywallServicing {
     private var packagesByPlanID: [String: Package] = [:]
 
-    func fetchPlans() async throws -> [PaywallPlan] {
+    func fetchPaywall() async throws -> (plans: [PaywallPlan], showCloseButton: Bool) {
         try ensureConfigured()
         let offerings = try await Purchases.shared.offerings()
         guard let offering = offerings.offering(identifier: AppConfig.revenueCatOfferingID) else {
-            return []
+            return ([], false)
         }
 
         packagesByPlanID = offering.availablePackages.reduce(into: [:]) { result, package in
@@ -34,7 +34,7 @@ final class RevenueCatPaywallService: PaywallServicing {
             rank(for: lhs.packageType) < rank(for: rhs.packageType)
         }
 
-        return orderedPackages.map { package in
+        let plans = orderedPackages.map { package in
             let product = package.storeProduct
             return PaywallPlan(
                 id: package.identifier,
@@ -45,6 +45,9 @@ final class RevenueCatPaywallService: PaywallServicing {
                 trialDetail: trialDetail(for: product)
             )
         }
+
+        let showCloseButton = parseBoolMetadata(offering.metadata["show_close_button"])
+        return (plans, showCloseButton)
     }
 
     func purchase(planID: String) async throws -> Bool {
@@ -93,14 +96,27 @@ final class RevenueCatPaywallService: PaywallServicing {
 
     private func rank(for packageType: PackageType) -> Int {
         switch packageType {
-        case .annual:
-            return 0
         case .weekly:
+            return 0
+        case .annual:
             return 1
         case .monthly:
             return 2
         default:
             return 3
+        }
+    }
+
+    private func parseBoolMetadata(_ value: Any?) -> Bool {
+        switch value {
+        case let boolValue as Bool:
+            return boolValue
+        case let number as NSNumber:
+            return number.boolValue
+        case let stringValue as String:
+            return stringValue.lowercased() == "true" || stringValue == "1"
+        default:
+            return false
         }
     }
 

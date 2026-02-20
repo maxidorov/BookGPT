@@ -12,15 +12,18 @@ struct OnboardingFlowView: View {
 
     private let onReachedPaywall: () -> Void
     private let onPurchaseCompleted: () -> Void
+    private let onPaywallClosed: () -> Void
 
     init(
         startAtPaywall: Bool,
         onReachedPaywall: @escaping () -> Void,
-        onPurchaseCompleted: @escaping () -> Void
+        onPurchaseCompleted: @escaping () -> Void,
+        onPaywallClosed: @escaping () -> Void
     ) {
         _viewModel = StateObject(wrappedValue: OnboardingFlowViewModel(startAtPaywall: startAtPaywall))
         self.onReachedPaywall = onReachedPaywall
         self.onPurchaseCompleted = onPurchaseCompleted
+        self.onPaywallClosed = onPaywallClosed
     }
 
     var body: some View {
@@ -73,7 +76,8 @@ struct OnboardingFlowView: View {
 
     @ViewBuilder
     private var header: some View {
-        if viewModel.steps.count > 1 {
+        let shouldShowHeader = viewModel.steps.count > 1 || (viewModel.currentStep == .paywall && viewModel.showsPaywallCloseButton)
+        if shouldShowHeader {
             VStack(spacing: 10) {
                 HStack {
                     if viewModel.canGoBack {
@@ -95,13 +99,30 @@ struct OnboardingFlowView: View {
                             .frame(width: 40, height: 40)
                     }
                     Spacer()
+                    if viewModel.currentStep == .paywall && viewModel.showsPaywallCloseButton {
+                        Button {
+                            onPaywallClosed()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.headline)
+                                .padding(10)
+                                .background(BrandBook.Colors.surface)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Color.clear
+                            .frame(width: 40, height: 40)
+                    }
                 }
 
-                ProgressView(value: viewModel.progressValue)
-                    .tint(BrandBook.Colors.gold)
-                    .background(BrandBook.Colors.surfaceMuted.opacity(0.5))
-                    .clipShape(Capsule())
-                    .animation(screenAnimation, value: viewModel.progressValue)
+                if viewModel.steps.count > 1 {
+                    ProgressView(value: viewModel.progressValue)
+                        .tint(BrandBook.Colors.gold)
+                        .background(BrandBook.Colors.surfaceMuted.opacity(0.5))
+                        .clipShape(Capsule())
+                        .animation(screenAnimation, value: viewModel.progressValue)
+                }
             }
             .padding(.horizontal, 20)
         }
@@ -1024,7 +1045,8 @@ private extension String {
     OnboardingFlowView(
         startAtPaywall: false,
         onReachedPaywall: {},
-        onPurchaseCompleted: {}
+        onPurchaseCompleted: {},
+        onPaywallClosed: {}
     )
     .preferredColorScheme(.dark)
 }
@@ -1033,7 +1055,8 @@ private extension String {
     OnboardingFlowView(
         startAtPaywall: true,
         onReachedPaywall: {},
-        onPurchaseCompleted: {}
+        onPurchaseCompleted: {},
+        onPaywallClosed: {}
     )
     .preferredColorScheme(.dark)
 }

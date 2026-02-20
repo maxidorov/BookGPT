@@ -39,6 +39,7 @@ final class OnboardingFlowViewModel: ObservableObject {
     @Published private(set) var activeReviewIndex: Int = 0
 
     @Published private(set) var paywallPlans: [PaywallPlan] = []
+    @Published private(set) var showsPaywallCloseButton = false
     @Published var selectedPlanID: String?
     @Published private(set) var isPaywallLoading = false
     @Published private(set) var paywallErrorMessage: String?
@@ -200,9 +201,10 @@ final class OnboardingFlowViewModel: ObservableObject {
 
         Task {
             do {
-                let plans = try await paywallService.fetchPlans()
-                paywallPlans = plans
-                selectedPlanID = plans.first?.id
+                let payload = try await paywallService.fetchPaywall()
+                paywallPlans = payload.plans
+                showsPaywallCloseButton = payload.showCloseButton
+                selectedPlanID = payload.plans.first?.id
                 isPaywallLoading = false
             } catch {
                 isPaywallLoading = false
