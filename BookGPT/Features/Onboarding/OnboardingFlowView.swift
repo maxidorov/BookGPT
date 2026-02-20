@@ -171,6 +171,7 @@ struct OnboardingFlowView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .animation(screenAnimation, value: viewModel.isPrimaryActionEnabled)
         .disabled(!viewModel.isPrimaryActionEnabled)
     }
 
