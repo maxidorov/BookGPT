@@ -14,7 +14,6 @@ final class OnboardingFlowViewModel: ObservableObject {
         case visualization
         case firstMessage
         case personalization
-        case socialProof
         case whatsIncluded
         case paywall
     }
@@ -40,8 +39,9 @@ final class OnboardingFlowViewModel: ObservableObject {
     @Published private(set) var hasVisualizationReady = false
     @Published private(set) var generatedVisualization: OnboardingCharacterVisualization?
     @Published private(set) var visualizationErrorMessage: String?
-    @Published private(set) var isSocialProofLoading = false
-    @Published private(set) var hasSocialProofReady = false
+    @Published private(set) var personalizationProgress: Double = 0
+    @Published private(set) var hasPersonalizationReady = false
+    @Published private(set) var activeReviewIndex: Int = 0
 
     @Published var selectedPlan: PlanOption = .annual
     @Published private(set) var isProcessingPurchase = false
@@ -49,6 +49,7 @@ final class OnboardingFlowViewModel: ObservableObject {
 
     let selectedHook: String
     private let visualizationService: any OnboardingCharacterVisualizing
+    private var personalizationTask: Task<Void, Never>?
 
     init(
         startAtPaywall: Bool,
@@ -64,6 +65,10 @@ final class OnboardingFlowViewModel: ObservableObject {
 
         self.visualizationService = visualizationService
         self.selectedHook = OnboardingContent.hookOptions.randomElement() ?? OnboardingContent.hookOptions[0]
+    }
+
+    deinit {
+        personalizationTask?.cancel()
     }
 
     var canGoBack: Bool {
@@ -85,6 +90,8 @@ final class OnboardingFlowViewModel: ObservableObject {
             return "Begin"
         case .visualization:
             return hasVisualizationReady ? "Continue" : "Creating..."
+        case .personalization:
+            return hasPersonalizationReady ? "Continue" : "Preparing..."
         case .paywall:
             return purchaseCompleted ? "Enter App" : "Unlock BookGPT"
         default:
@@ -108,8 +115,8 @@ final class OnboardingFlowViewModel: ObservableObject {
             return !bookTitle.trimmed.isEmpty
         case .visualization:
             return hasVisualizationReady
-        case .socialProof:
-            return hasSocialProofReady
+        case .personalization:
+            return hasPersonalizationReady
         case .paywall:
             return !isProcessingPurchase
         default:
@@ -137,9 +144,6 @@ final class OnboardingFlowViewModel: ObservableObject {
 
         if currentStep == .bookTitle {
             startVisualizationGeneration()
-        }
-        if currentStep == .personalization {
-            startSocialProofPreparationStub()
         }
 
         guard indexOfCurrentStep + 1 < steps.count else { return }
@@ -193,15 +197,40 @@ final class OnboardingFlowViewModel: ObservableObject {
         }
     }
 
-    func startSocialProofPreparationStub() {
-        guard !isSocialProofLoading, !hasSocialProofReady else { return }
-        isSocialProofLoading = true
+    func startPersonalizationSequenceIfNeeded() {
+        guard !hasPersonalizationReady, personalizationTask == nil else { return }
 
-        Task {
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
-            isSocialProofLoading = false
-            hasSocialProofReady = true
+        personalizationProgress = 0
+        activeReviewIndex = 0
+
+        personalizationTask = Task { [weak self] in
+            guard let self else { return }
+
+            let totalTicks = 80
+            let tickDurationNs: UInt64 = 100_000_000
+            let reviewDurationSeconds = 8.0 / 3.0
+
+            for tick in 1...totalTicks {
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: tickDurationNs)
+
+                let elapsedSeconds = Double(tick) * 0.1
+                personalizationProgress = Double(tick) / Double(totalTicks)
+                activeReviewIndex = min(
+                    max(0, OnboardingContent.testimonials.count - 1),
+                    Int(elapsedSeconds / reviewDurationSeconds)
+                )
+            }
+
+            hasPersonalizationReady = true
+            personalizationTask = nil
         }
+    }
+
+    func userSelectedReviewIndex(_ index: Int) {
+        guard !OnboardingContent.testimonials.isEmpty else { return }
+        let boundedIndex = min(max(index, 0), OnboardingContent.testimonials.count - 1)
+        activeReviewIndex = boundedIndex
     }
 
     private var indexOfCurrentStep: Int {

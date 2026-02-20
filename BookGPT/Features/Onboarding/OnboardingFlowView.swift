@@ -5,6 +5,7 @@ struct OnboardingFlowView: View {
     @State private var transitionEdge: Edge = .trailing
     @State private var isHookHeroVisible = false
     @State private var areHookBubblesVisible = false
+    @State private var reviewPage: Int = 0
     private let screenAnimation = Animation.easeInOut(duration: 0.35)
 
     private let onReachedPaywall: () -> Void
@@ -145,8 +146,6 @@ struct OnboardingFlowView: View {
             firstMessageStep
         case .personalization:
             personalizationStep
-        case .socialProof:
-            socialProofStep
         case .whatsIncluded:
             whatsIncludedStep
         case .paywall:
@@ -478,60 +477,82 @@ struct OnboardingFlowView: View {
             .padding(14)
             .background(BrandBook.Colors.surface)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        }
-    }
 
-    private var socialProofStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if viewModel.isSocialProofLoading || !viewModel.hasSocialProofReady {
-                stepTitle("Preparing your personalized library")
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .tint(BrandBook.Colors.gold)
-                    Text("Analyzing your taste and preparing your character setup...")
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Preparing your personalized setup")
                         .font(BrandBook.Typography.body(size: 16))
-                        .multilineTextAlignment(.center)
-                    Text("This takes a moment and unlocks a better first experience after purchase.")
-                        .font(BrandBook.Typography.caption())
+                    Spacer()
+                    Text("\(Int(viewModel.personalizationProgress * 100))%")
+                        .font(BrandBook.Typography.caption(size: 14))
                         .foregroundStyle(BrandBook.Colors.secondaryText)
-                        .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 26)
-                .padding(.horizontal, 16)
-                .background(BrandBook.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            } else {
-                stepTitle("Loved by readers")
+
+                ProgressView(value: viewModel.personalizationProgress)
+                    .tint(BrandBook.Colors.gold)
+                    .background(BrandBook.Colors.surfaceMuted.opacity(0.5))
+                    .clipShape(Capsule())
+                    .animation(.linear(duration: 0.1), value: viewModel.personalizationProgress)
+            }
+            .padding(14)
+            .background(BrandBook.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Loved by readers")
+                    .font(BrandBook.Typography.section(size: 22))
+                    .foregroundStyle(BrandBook.Colors.paper)
 
                 HStack(spacing: 10) {
                     Text("4.9")
-                        .font(BrandBook.Typography.title(size: 36))
+                        .font(BrandBook.Typography.title(size: 34))
                     Text("★★★★★")
-                        .font(BrandBook.Typography.section(size: 24))
+                        .font(BrandBook.Typography.section(size: 22))
                     Spacer()
                 }
                 .foregroundStyle(BrandBook.Colors.gold)
 
-                VStack(spacing: 10) {
-                    ForEach(OnboardingContent.testimonials) { testimonial in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("\"\(testimonial.quote)\"")
-                                .font(BrandBook.Typography.body(size: 16))
-                            Text(testimonial.author)
-                                .font(BrandBook.Typography.caption())
-                                .foregroundStyle(BrandBook.Colors.secondaryText)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(14)
-                        .background(BrandBook.Colors.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                }
+                testimonialSlideCard
             }
+            .padding(14)
+            .background(BrandBook.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .task {
-            viewModel.startSocialProofPreparationStub()
+            viewModel.startPersonalizationSequenceIfNeeded()
+        }
+    }
+
+    private var testimonialSlideCard: some View {
+        TabView(selection: $reviewPage) {
+            ForEach(Array(OnboardingContent.testimonials.enumerated()), id: \.offset) { index, testimonial in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("\"\(testimonial.quote)\"")
+                        .font(BrandBook.Typography.body(size: 16))
+                    Text(testimonial.author)
+                        .font(BrandBook.Typography.caption())
+                        .foregroundStyle(BrandBook.Colors.secondaryText)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .background(BrandBook.Colors.surfaceMuted)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(.horizontal, 4)
+                .tag(index)
+            }
+        }
+        .frame(height: 150)
+        .tabViewStyle(.page(indexDisplayMode: .automatic))
+        .onAppear {
+            reviewPage = viewModel.activeReviewIndex
+        }
+        .onChange(of: viewModel.activeReviewIndex) { _, newValue in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                reviewPage = newValue
+            }
+        }
+        .onChange(of: reviewPage) { _, newValue in
+            viewModel.userSelectedReviewIndex(newValue)
         }
     }
 
