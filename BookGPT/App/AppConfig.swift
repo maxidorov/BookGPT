@@ -10,6 +10,6 @@ enum AppConfig {
     static let revenueCatWeeklyProductID: String = "book_gpt_pro_weekly"
     static let revenueCatAnnualProductID: String = "book_gpt_pro_annual"
 
-    static let termsOfUseURL: URL? = URL(string: "https://example.com/terms")
-    static let privacyPolicyURL: URL? = URL(string: "https://example.com/privacy")
+    static let termsOfUseURL: URL? = URL(string: "https://cool-mall-f57.notion.site/Terms-of-Use-30efd7ddf43180418ddce5747bdff1cc")
+    static let privacyPolicyURL: URL? = URL(string: "https://cool-mall-f57.notion.site/Privacy-Policy-30efd7ddf4318004a362de2eb9a07ca9?t=new")
 }
