@@ -1,8 +1,10 @@
 import SwiftUI
+import WebKit
 
 struct SearchBookView: View {
     @StateObject private var viewModel: SearchBookViewModel
     @FocusState private var isSearchFocused: Bool
+    @State private var isShowingSettings = false
     let onSearchRequested: (String) -> Void
     let onBookSelected: (Book) -> Void
 
@@ -83,12 +85,22 @@ struct SearchBookView: View {
             viewModel.loadRecentBooks()
         }
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isShowingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+            }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") {
                     isSearchFocused = false
                 }
             }
+        }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView()
         }
     }
 
@@ -135,5 +147,101 @@ struct SearchBookView: View {
         isSearchFocused = false
         guard let query = viewModel.validatedQueryForSearch() else { return }
         onSearchRequested(query)
+    }
+}
+
+private struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var activeDocument: SettingsLegalDocument?
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                BrandBook.Colors.background.ignoresSafeArea()
+
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Legal")
+                        .font(BrandBook.Typography.section(size: 22))
+                        .foregroundStyle(BrandBook.Colors.paper)
+
+                    if let termsURL = AppConfig.termsOfUseURL {
+                        legalButton(title: "Terms of Use") {
+                            activeDocument = SettingsLegalDocument(title: "Terms of Use", url: termsURL)
+                        }
+                    }
+
+                    if let privacyURL = AppConfig.privacyPolicyURL {
+                        legalButton(title: "Privacy Policy") {
+                            activeDocument = SettingsLegalDocument(title: "Privacy Policy", url: privacyURL)
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .sheet(item: $activeDocument) { document in
+            NavigationStack {
+                SettingsInAppWebView(url: document.url)
+                    .navigationTitle(document.title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Close") {
+                                activeDocument = nil
+                            }
+                        }
+                    }
+            }
+        }
+    }
+
+    private func legalButton(title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .font(BrandBook.Typography.body())
+                Spacer()
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundStyle(BrandBook.Colors.primaryText)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 14)
+            .background(BrandBook.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SettingsLegalDocument: Identifiable {
+    let id = UUID()
+    let title: String
+    let url: URL
+}
+
+private struct SettingsInAppWebView: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        WKWebView(frame: .zero)
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        if webView.url != url {
+            webView.load(URLRequest(url: url))
+        }
     }
 }
